@@ -26,15 +26,21 @@ func NewServer(c *config.Config) (*Server, error) {
 		return nil, err
 	}
 	log := logger.InitLogger(c.LogLevel, c.LogPrettyPrint)
+	transport := *newTransport(
+		log,
+		cache.NewMemoryCacheFromConfig(c),
+		NewMatcherFromConfig(c),
+	)
+	return NewServerWithTransport(proxyURL, log, transport)
+}
+
+func NewServerWithTransport(proxyURL *url.URL, log *logrus.Entry, transport transport) (*Server, error) {
+	log.Info("Initializing proxy server...")
 	s := &Server{
-		target: proxyURL,
-		logger: log,
-		proxy:  httputil.NewSingleHostReverseProxy(proxyURL),
-		transport: transport{
-			logger:  log,
-			cache:   cache.NewMemoryCacheFromConfig(c),
-			matcher: NewMatcherFromConfig(c),
-		},
+		target:    proxyURL,
+		logger:    log,
+		proxy:     httputil.NewSingleHostReverseProxy(proxyURL),
+		transport: transport,
 	}
 	s.proxy.Transport = &s.transport
 	return s, nil

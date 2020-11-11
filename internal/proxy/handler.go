@@ -25,7 +25,7 @@ const (
 	jsonRPCTimeout       = -32000
 	jsonRPCUnavailable   = -32601
 	jsonRPCInvalidParams = -32602
-	jsonRPCInternal      = -32603
+	// jsonRPCInternal      = -32603
 )
 
 type rpcResponses []rpcResponse
@@ -39,19 +39,19 @@ func (r rpcRequests) methods() []string {
 	return methods
 }
 
-func (c rpcResponses) initializedResponses() []int {
-	var results []int
-	for idx, response := range c {
-		if response.initialized() {
-			results = append(results, idx)
+// nolint
+func (r rpcRequests) byID(id interface{}) (rpcRequest, int) {
+	for idx, req := range r {
+		if req.ID == id {
+			return req, idx
 		}
 	}
-	return results
+	return rpcRequest{}, -1
 }
 
-func (c rpcResponses) uninitializedResponses() []int {
+func (r rpcResponses) blankResponses() []int {
 	var results []int
-	for idx, response := range c {
+	for idx, response := range r {
 		if !response.initialized() {
 			results = append(results, idx)
 		}
@@ -59,14 +59,24 @@ func (c rpcResponses) uninitializedResponses() []int {
 	return results
 }
 
-func (c rpcResponses) Response() (*http.Response, error) {
-	switch len(c) {
+// nolint
+func (r rpcResponses) byID(id interface{}) (rpcResponse, int) {
+	for idx, req := range r {
+		if req.ID == id {
+			return req, idx
+		}
+	}
+	return rpcResponse{}, -1
+}
+
+func (r rpcResponses) Response() (*http.Response, error) {
+	switch len(r) {
 	case 0:
 		return jsonRPCResponse(200, nil)
 	case 1:
-		return jsonRPCResponse(200, c[0])
+		return jsonRPCResponse(200, r[0])
 	default:
-		return jsonRPCResponse(200, c)
+		return jsonRPCResponse(200, r)
 	}
 }
 
@@ -76,30 +86,39 @@ type transport struct {
 	matcher matcher
 }
 
-type responseError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+func newTransport(logger *logrus.Entry, cache cache.Cache, matcher matcher) *transport {
+	return &transport{
+		logger:  logger,
+		cache:   cache,
+		matcher: matcher,
+	}
 }
 
 type errResponse struct {
-	Version string          `json:"jsonrpc"`
-	ID      json.RawMessage `json:"id"`
-	Error   responseError   `json:"error"`
+	Version string      `json:"jsonrpc"`
+	ID      interface{} `json:"id"`
+	Error   rpcError    `json:"error"`
 }
 
 type rpcRequest struct {
-	JSONRPC    string `json:"jsonrpc"`
 	remoteAddr string
-	ID         json.RawMessage   `json:"id,omitempty"`
-	Method     string            `json:"method"`
-	Params     []json.RawMessage `json:"params,omitempty"`
+	JSONRPC    string      `json:"jsonrpc"`
+	ID         interface{} `json:"id,omitempty"`
+	Method     string      `json:"method"`
+	Params     interface{} `json:"params,omitempty"`
 }
 
 type rpcResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      json.RawMessage `json:"id,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   json.RawMessage `json:"error,omitempty"`
+	JSONRPC string      `json:"jsonrpc"`
+	ID      interface{} `json:"id,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   *rpcError   `json:"error,omitempty"`
+}
+
+type rpcError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 func (r rpcResponse) initialized() bool {
@@ -151,13 +170,13 @@ func parseResponseBody(body []byte) ([]rpcResponse, error) {
 	if isBatch(body) {
 		var arr []rpcResponse
 		if err := json.Unmarshal(body, &arr); err != nil {
-			return nil, fmt.Errorf("failed to parse JSON batch request: %w", err)
+			return nil, fmt.Errorf("failed to parse JSON batch response: %w", err)
 		}
 		return arr, nil
 	} else {
 		var rpc rpcResponse
 		if err := json.Unmarshal(body, &rpc); err != nil {
-			return nil, fmt.Errorf("failed to parse JSON request: %v", err)
+			return nil, fmt.Errorf("failed to parse JSON response: %v", err)
 		}
 		return []rpcResponse{rpc}, nil
 	}
@@ -223,7 +242,7 @@ func jsonRPCError(id json.RawMessage, jsonCode int, msg string) interface{} {
 	resp := errResponse{
 		Version: "2.0",
 		ID:      id,
-		Error: responseError{
+		Error: rpcError{
 			Code:    jsonCode,
 			Message: msg,
 		},
@@ -231,16 +250,14 @@ func jsonRPCError(id json.RawMessage, jsonCode int, msg string) interface{} {
 	return resp
 }
 
+// nolint
 func jsonRPCUnauthorized(id json.RawMessage, method string) interface{} {
 	return jsonRPCError(id, jsonRPCUnavailable, fmt.Sprintf("You are not authorized to make this request: %s", method))
 }
 
+// nolint
 func jsonRPCLimit(id json.RawMessage) interface{} {
 	return jsonRPCError(id, jsonRPCTimeout, "You hit the request limit")
-}
-
-func jsonRPCBlockRangeLimit(id json.RawMessage, blocks, limit uint64) interface{} {
-	return jsonRPCError(id, jsonRPCInvalidParams, fmt.Sprintf("Requested range of blocks (%d) is larger than limit (%d).", blocks, limit))
 }
 
 // jsonRPCResponse returns a JSON response containing v, or a plaintext generic
@@ -264,11 +281,7 @@ func (t *transport) setResponseCache(req rpcRequest, resp rpcResponse) error {
 	if key == "" {
 		return nil
 	}
-	data, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	return t.cache.Set(key, data)
+	return t.cache.Set(key, resp)
 }
 
 func (t *transport) getResponseCache(req rpcRequest) (rpcResponse, error) {
@@ -281,7 +294,14 @@ func (t *transport) getResponseCache(req rpcRequest) (rpcResponse, error) {
 	if err != nil {
 		return resp, err
 	}
-	err = json.Unmarshal(data, &resp)
+	if data == nil {
+		return resp, nil
+	}
+	resp, ok := data.(rpcResponse)
+	if ok {
+		return resp, nil
+	}
+	err = json.Unmarshal(data.([]byte), &resp)
 	return resp, err
 }
 
@@ -295,7 +315,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	parsedRequests, err := parseRequests(req)
 	if err != nil {
-		log.Error("Failed to parse requests: %v", err)
+		log.Errorf("Failed to parse requests: %v", err)
 		metrics.SetRequestErrorCounter()
 		resp, err := jsonRPCResponse(http.StatusBadRequest, jsonRPCError(nil, jsonRPCInvalidParams, err.Error()))
 		if err != nil {
@@ -306,13 +326,14 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	log = log.WithField("methods", parsedRequests.methods())
 
-	cachedResponses, err := t.fromCache(parsedRequests)
+	preparedResponses, err := t.fromCache(parsedRequests)
 	if err != nil {
-		log.Errorf("Cannot get cached responses: %v", err)
-		cachedResponses = make(rpcResponses, len(parsedRequests))
+		log.Errorf("Cannot build prepared responses: %v", err)
+		preparedResponses = make(rpcResponses, len(parsedRequests))
 	}
 
-	proxyRequestIdx := cachedResponses.uninitializedResponses()
+	proxyRequestIdx := preparedResponses.blankResponses()
+	// build requests to proxy
 	var proxyRequests rpcRequests
 	for _, idx := range proxyRequestIdx {
 		proxyRequests = append(proxyRequests, parsedRequests[idx])
@@ -321,14 +342,14 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var proxyBody []byte
 	switch len(proxyRequests) {
 	case 0:
-		return cachedResponses.Response()
+		return preparedResponses.Response()
 	case 1:
 		proxyBody, err = json.Marshal(proxyRequests[0])
 	default:
 		proxyBody, err = json.Marshal(proxyRequests)
 	}
 	if err != nil {
-		log.Errorf("Failed to construct invalid params response: %v", err)
+		log.Errorf("Failed to construct invalid cacheParams response: %v", err)
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(proxyBody))
@@ -346,16 +367,16 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	for idx, response := range responses {
-		if len(response.Error) == 0 {
+		if response.Error == nil {
 			err := t.setResponseCache(parsedRequests[proxyRequestIdx[idx]], response)
 			if err != nil {
 				t.logger.Errorf("Cannot set cached response: %v", err)
 			}
 		}
-		cachedResponses[proxyRequestIdx[idx]] = response
+		preparedResponses[proxyRequestIdx[idx]] = response
 	}
 
-	resp, err := cachedResponses.Response()
+	resp, err := preparedResponses.Response()
 	if err != nil {
 		t.logger.Errorf("Cannot prepare response from cached responses: %v", err)
 		return resp, err

@@ -10,6 +10,8 @@ import (
 var Log *logrus.Entry
 var onceLog sync.Once
 
+var defaultLogger = "INFO"
+
 type utcFormatter struct {
 	logrus.Formatter
 }
@@ -40,6 +42,14 @@ func initLogger(logLevel string, logPrettyPrint bool) {
 func InitLogger(logLevel string, logPrettyPrint bool) *logrus.Entry {
 	onceLog.Do(func() {
 		initLogger(logLevel, logPrettyPrint)
+	})
+	return Log
+}
+
+// InitDefaultLogger initializes logger instance
+func InitDefaultLogger() *logrus.Entry {
+	onceLog.Do(func() {
+		initLogger(defaultLogger, true)
 	})
 	return Log
 }

@@ -26,5 +26,4 @@ func TestNewMemoryCacheExpired(t *testing.T) {
 	value, err := cache.Get("1")
 	require.NoError(t, err)
 	require.Nil(t, value)
-	require.Len(t, value, 0)
 }

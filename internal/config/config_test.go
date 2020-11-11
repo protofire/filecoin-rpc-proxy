@@ -10,26 +10,59 @@ import (
 )
 
 var (
-	proxyURL     = "http://test.com"
-	methodName   = "test"
-	paramInCache = 1
-	config       = fmt.Sprintf(`
+	proxyURL         = "http://test.com"
+	methodName       = "test"
+	paramInCacheID   = 1
+	paramInCacheName = "field"
+	configParamsByID = fmt.Sprintf(`
 proxy_url: %s
 cache_methods:
 - name: %s
   cache_by_params: true
-  params_in_cache:
+  params_in_cache_id:
     - %s
-`, proxyURL, methodName, strconv.Itoa(paramInCache))
+`, proxyURL, methodName, strconv.Itoa(paramInCacheID))
+	configParamsByName = fmt.Sprintf(`
+proxy_url: %s
+cache_methods:
+- name: %s
+  cache_by_params: true
+  params_in_cache_name:
+    - %s
+`, proxyURL, methodName, paramInCacheName)
+	configParamsByIDAndName = fmt.Sprintf(`
+proxy_url: %s
+cache_methods:
+- name: %s
+  cache_by_params: true
+  params_in_cache_id:
+    - %s
+  params_in_cache_name:
+    - %s
+`, proxyURL, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
 
-func TestNewConfig(t *testing.T) {
-	config, err := NewConfig(strings.NewReader(config))
+func TestNewConfigCacheParamsByID(t *testing.T) {
+	config, err := NewConfig(strings.NewReader(configParamsByID))
 	require.NoError(t, err)
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
 	require.Equal(t, config.CacheMethods[0].Name, methodName)
-	require.Equal(t, config.CacheMethods[0].ParamsInCache[0], paramInCache)
+	require.Equal(t, config.CacheMethods[0].ParamsInCacheID[0], paramInCacheID)
 	require.Equal(t, config.CacheSettings.DefaultExpiration, 0)
 	require.Equal(t, config.CacheSettings.CleanupInterval, -1)
+}
+
+func TestNewConfigCacheParamsByName(t *testing.T) {
+	config, err := NewConfig(strings.NewReader(configParamsByName))
+	require.NoError(t, err)
+	require.Equal(t, config.ProxyURL, proxyURL)
+	require.True(t, config.CacheMethods[0].CacheByParams)
+	require.Equal(t, config.CacheMethods[0].Name, methodName)
+	require.Equal(t, config.CacheMethods[0].ParamsInCacheName[0], paramInCacheName)
+}
+
+func TestNewConfigCacheParamsByIDAndName(t *testing.T) {
+	_, err := NewConfig(strings.NewReader(configParamsByIDAndName))
+	require.Error(t, err)
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -15,9 +16,10 @@ const (
 )
 
 type CacheMethod struct {
-	Name          string `yaml:"name"`
-	CacheByParams bool   `yaml:"cache_by_params,omitempty"`
-	ParamsInCache []int  `yaml:"params_in_cache,omitempty"`
+	Name              string   `yaml:"name"`
+	CacheByParams     bool     `yaml:"cache_by_params,omitempty"`
+	ParamsInCacheID   []int    `yaml:"params_in_cache_id,omitempty"`
+	ParamsInCacheName []string `yaml:"params_in_cache_name,omitempty"`
 }
 
 type CacheSettings struct {
@@ -39,7 +41,7 @@ func NewConfig(reader io.Reader) (*Config, error) {
 		return nil, err
 	}
 	c.init()
-	return c, nil
+	return c, c.validate()
 }
 
 func (c *Config) init() {
@@ -52,6 +54,15 @@ func (c *Config) init() {
 	if c.LogLevel == "" {
 		c.LogLevel = defaultLogLevel
 	}
+}
+
+func (c *Config) validate() error {
+	for _, params := range c.CacheMethods {
+		if len(params.ParamsInCacheID) > 0 && len(params.ParamsInCacheName) > 0 {
+			return fmt.Errorf("either cache params by ID or cache params by name are supported")
+		}
+	}
+	return nil
 }
 
 func NewConfigFromFile(filename string) (*Config, error) {

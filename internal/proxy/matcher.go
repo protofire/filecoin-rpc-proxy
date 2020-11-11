@@ -1,11 +1,13 @@
 package proxy
 
 import (
-	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
+
+	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 )
@@ -14,17 +16,48 @@ type matcher interface {
 	key(request rpcRequest) string
 }
 
-type params struct {
-	cacheByParams bool
-	paramsInCache []int
+type cacheParams struct {
+	cacheByParams     bool
+	paramsInCacheID   []int
+	paramsInCacheName []string
+}
+
+func (p cacheParams) match(params interface{}) ([]interface{}, error) {
+	if !p.cacheByParams {
+		return nil, nil
+	}
+	var paramsForCache []interface{}
+	if len(p.paramsInCacheID) == 0 && len(p.paramsInCacheName) == 0 {
+		// cache by all params
+		paramsForCache = append(paramsForCache, params)
+		return paramsForCache, nil
+	}
+	if len(p.paramsInCacheID) != 0 {
+		sliceParams, ok := params.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("cannot parse method parameters %#v with cache params by ID: %#v", params, p.paramsInCacheID)
+		}
+		for idx := range p.paramsInCacheID {
+			paramsForCache = append(paramsForCache, sliceParams[idx])
+		}
+		return paramsForCache, nil
+	}
+	mapParams, ok := params.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("cannot parse method parameters %#v with cache params by Name: %#v", params, p.paramsInCacheName)
+	}
+	for _, key := range p.paramsInCacheName {
+		paramsForCache = append(paramsForCache, mapParams[key])
+	}
+	return paramsForCache, nil
 }
 
 type match struct {
-	methods map[string]params
+	methods map[string]cacheParams
 }
 
 func newMatcher() *match {
-	methods := make(map[string]params)
+	methods := make(map[string]cacheParams)
 	return &match{methods: methods}
 }
 
@@ -32,43 +65,43 @@ func newMatcher() *match {
 func NewMatcherFromConfig(c *config.Config) *match {
 	matcher := newMatcher()
 	for _, method := range c.CacheMethods {
-		matcher.methods[method.Name] = params{
-			cacheByParams: method.CacheByParams,
-			paramsInCache: method.ParamsInCache,
+		paramsInCacheName := method.ParamsInCacheName
+		sort.Strings(paramsInCacheName)
+		matcher.methods[method.Name] = cacheParams{
+			cacheByParams:     method.CacheByParams,
+			paramsInCacheID:   method.ParamsInCacheID,
+			paramsInCacheName: paramsInCacheName,
 		}
 	}
 	return matcher
 }
 
 func (m match) key(r rpcRequest) string {
-	params, ok := m.methods[r.Method]
+	cacheParams, ok := m.methods[r.Method]
 	if !ok {
 		return ""
 	}
-	if !params.cacheByParams {
-		return r.Method
+	key, err := cacheParams.match(r.Params)
+	if err != nil {
+		logger.Log.Error(err)
+		return ""
 	}
-	var paramsForCache []json.RawMessage
-	if len(params.paramsInCache) == 0 {
-		paramsForCache = r.Params
-	} else {
-		for idx := range params.paramsInCache {
-			paramsForCache = append(paramsForCache, r.Params[idx])
-		}
+	strKey := interfaceSliceToString(key)
+	params := []string{r.Method}
+	if strKey != "" {
+		params = append(params, strKey)
 	}
-	return rawMessagesToString(paramsForCache)
+	return strings.Join(params, "_")
 }
 
-func rawMessageToString(message json.RawMessage) string {
-	hash := md5.New()
-	hash.Write(bytes.ReplaceAll(message, []byte(" "), []byte("")))
+func interfaceSliceToString(params []interface{}) string {
+	if len(params) == 0 {
+		return ""
+	}
+	hash := sha256.New()
+	for _, ifs := range params {
+		value, _ := json.Marshal(ifs)
+		_, _ = hash.Write(value)
+	}
 	return fmt.Sprintf("%x", hash.Sum(nil))
-}
-
-func rawMessagesToString(messages []json.RawMessage) string {
-	res := make([]string, len(messages))
-	for idx, message := range messages {
-		res[idx] = rawMessageToString(message)
-	}
-	return strings.Join(res, "_")
 }

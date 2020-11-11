@@ -17,23 +17,23 @@ func (e Error) Error() string {
 }
 
 type Cache interface {
-	Set(key string, value []byte) error
-	Get(key string) ([]byte, error)
+	Set(key string, value interface{}) error
+	Get(key string) (interface{}, error)
 }
 
 type MemoryCache struct {
 	*cache.Cache
 }
 
-func (m *MemoryCache) Set(key string, value []byte) error {
+func (m *MemoryCache) Set(key string, value interface{}) error {
 	m.Cache.Set(key, value, 0)
 	return nil
 }
 
-func (m *MemoryCache) Get(key string) ([]byte, error) {
+func (m *MemoryCache) Get(key string) (interface{}, error) {
 	value, ok := m.Cache.Get(key)
 	if ok {
-		return value.([]byte), nil
+		return value, nil
 	}
 	return nil, nil
 }
