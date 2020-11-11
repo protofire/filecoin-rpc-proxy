@@ -48,8 +48,5 @@ func InitLogger(logLevel string, logPrettyPrint bool) *logrus.Entry {
 
 // InitDefaultLogger initializes logger instance
 func InitDefaultLogger() *logrus.Entry {
-	onceLog.Do(func() {
-		initLogger(defaultLogger, true)
-	})
-	return Log
+	return InitLogger(defaultLogger, true)
 }

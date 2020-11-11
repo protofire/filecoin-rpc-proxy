@@ -13,6 +13,8 @@ const (
 	DefaultCacheCleanupInterval = -1
 	DefaultCacheExpiration      = 0
 	defaultLogLevel             = "INFO"
+	defaultPort                 = 8080
+	defaultHost                 = "0.0.0.0"
 )
 
 type CacheMethod struct {
@@ -29,6 +31,8 @@ type CacheSettings struct {
 
 type Config struct {
 	CacheMethods   []CacheMethod `yaml:"cache_methods,omitempty"`
+	Host           string        `yaml:"host"`
+	Port           int           `yaml:"port"`
 	ProxyURL       string        `yaml:"proxy_url"`
 	CacheSettings  CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel       string        `yaml:"log_level"`
@@ -53,6 +57,12 @@ func (c *Config) init() {
 	}
 	if c.LogLevel == "" {
 		c.LogLevel = defaultLogLevel
+	}
+	if c.Port == 0 {
+		c.Port = defaultPort
+	}
+	if c.Host == "" {
+		c.Host = defaultHost
 	}
 }
 

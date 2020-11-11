@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,6 +15,8 @@ import (
 )
 
 type Server struct {
+	host   string
+	port   int
 	target *url.URL
 	logger *logrus.Entry
 	proxy  *httputil.ReverseProxy
@@ -31,12 +34,14 @@ func NewServer(c *config.Config) (*Server, error) {
 		cache.NewMemoryCacheFromConfig(c),
 		NewMatcherFromConfig(c),
 	)
-	return NewServerWithTransport(proxyURL, log, transport)
+	return NewServerWithTransport(proxyURL, c.Host, c.Port, log, transport)
 }
 
-func NewServerWithTransport(proxyURL *url.URL, log *logrus.Entry, transport transport) (*Server, error) {
+func NewServerWithTransport(proxyURL *url.URL, host string, port int, log *logrus.Entry, transport transport) (*Server, error) {
 	log.Info("Initializing proxy server...")
 	s := &Server{
+		host:      host,
+		port:      port,
 		target:    proxyURL,
 		logger:    log,
 		proxy:     httputil.NewSingleHostReverseProxy(proxyURL),
@@ -49,4 +54,38 @@ func NewServerWithTransport(proxyURL *url.URL, log *logrus.Entry, transport tran
 func (p *Server) RPCProxy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-rpc-proxy", "rpc-proxy")
 	p.proxy.ServeHTTP(w, r)
+}
+
+// HealthFunc health checking
+func (p *Server) HealthFunc(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_, err := w.Write([]byte(`{"status": "ok"}`))
+	if err != nil {
+		p.logger.Errorf("Response send error %v", err)
+	}
+}
+
+// ReadyFunc readiness checking
+func (p *Server) ReadyFunc(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_, err := w.Write([]byte(`{"status": "ok"}`))
+	if err != nil {
+		p.logger.Errorf("Response send error %v", err)
+	}
+}
+
+// StartHTTPServer starts http server
+func (p *Server) StartHTTPServer() *http.Server {
+
+	server := &http.Server{Addr: fmt.Sprintf("%s:%d", p.host, p.port)}
+
+	go func() {
+		p.logger.Infof("Listening on %s", p.host)
+		if err := server.ListenAndServe(); err != nil {
+			p.logger.Infof("Listening status: %v", err)
+		}
+	}()
+
+	return server
+
 }
