@@ -7,34 +7,34 @@ import (
 var (
 	cacheSize = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "cache",
-		Name:      "cache_size",
+		Name:      "size",
 		Help:      "The proxy cache size",
 	})
-	proxyRequestDuration = prometheus.NewGauge(prometheus.GaugeOpts{
+	proxyRequestDuration = prometheus.NewSummary(prometheus.SummaryOpts{
 		Namespace: "proxy",
-		Name:      "proxy_request_duration",
+		Name:      "request_duration",
 		Help:      "The proxy request duration",
 	})
 	proxyRequests = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "proxy",
-		Name:      "proxy_requests",
+		Name:      "requests",
 		Help:      "The total number of processed proxy requests",
 	})
 	cachedProxyRequests = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "proxy",
-		Name:      "proxy_requests_cached",
+		Name:      "requests_cached",
 		Help:      "The total number of cached proxy requests",
 	})
 	errorProxyRequests = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "proxy",
-		Name:      "proxy_requests_error",
+		Name:      "requests_error",
 		Help:      "The total number of failed proxy requests",
 	})
 )
 
 // SetRequestDuration ...
 func SetRequestDuration(n int64) {
-	proxyRequestDuration.Set(float64(n))
+	proxyRequestDuration.Observe(float64(n))
 }
 
 // SetCacheSize ...
@@ -42,18 +42,18 @@ func SetCacheSize(n int64) {
 	cacheSize.Set(float64(n))
 }
 
-// SetRequestCounter ...
-func SetRequestCounter() {
+// SetRequestsCounter ...
+func SetRequestsCounter() {
 	proxyRequests.Inc()
 }
 
-// SetRequestErrorCounter ...
-func SetRequestErrorCounter() {
+// SetRequestsErrorCounter ...
+func SetRequestsErrorCounter() {
 	errorProxyRequests.Inc()
 }
 
-// SetRequestCachedCounter ...
-func SetRequestCachedCounter() {
+// SetRequestsCachedCounter ...
+func SetRequestsCachedCounter() {
 	cachedProxyRequests.Inc()
 }
 
