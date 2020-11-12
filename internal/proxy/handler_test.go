@@ -23,7 +23,8 @@ var (
 	paramInCacheID           = 1
 	token                    = "token"
 	configParamsByIDTemplate = `
-token: %s
+jwt_token: %s
+jwt_secret: %s
 proxy_url: %s
 log_level: DEBUG
 log_pretty_print: true
@@ -36,7 +37,7 @@ cache_methods:
 )
 
 func getConfig(url string, method string) (*config.Config, error) {
-	template := fmt.Sprintf(configParamsByIDTemplate, token, url, method, strconv.Itoa(paramInCacheID))
+	template := fmt.Sprintf(configParamsByIDTemplate, token, token, url, method, strconv.Itoa(paramInCacheID))
 	return config.NewConfig(strings.NewReader(template))
 }
 

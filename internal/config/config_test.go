@@ -17,25 +17,28 @@ var (
 	paramInCacheName = "field"
 	configParamsByID = fmt.Sprintf(`
 proxy_url: %s
-token: %s
+jwt_token: %s
+jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
   params_in_cache_id:
     - %s
-`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID))
+`, proxyURL, token, token, methodName, strconv.Itoa(paramInCacheID))
 	configParamsByName = fmt.Sprintf(`
 proxy_url: %s
-token: %s
+jwt_token: %s
+jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
   params_in_cache_name:
     - %s
-`, proxyURL, token, methodName, paramInCacheName)
+`, proxyURL, token, token, methodName, paramInCacheName)
 	configParamsByIDAndName = fmt.Sprintf(`
 proxy_url: %s
-token: %s
+jwt_token: %s
+jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
@@ -43,7 +46,7 @@ cache_methods:
     - %s
   params_in_cache_name:
     - %s
-`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
+`, proxyURL, token, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
 
 func TestNewConfigCacheParamsByID(t *testing.T) {

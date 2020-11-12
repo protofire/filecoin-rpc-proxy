@@ -15,6 +15,7 @@ const (
 	defaultLogLevel             = "INFO"
 	defaultPort                 = 8080
 	defaultHost                 = "0.0.0.0"
+	defaultJWTAlgorithm         = "HS256"
 )
 
 type CacheMethod struct {
@@ -31,7 +32,9 @@ type CacheSettings struct {
 
 type Config struct {
 	CacheMethods   []CacheMethod `yaml:"cache_methods,omitempty"`
-	ApiToken       string        `yaml:"token"`
+	JWTAlgorithm   string        `yaml:"jwt_alg"`
+	JWTSecret      string        `yaml:"jwt_secret"`
+	JWTToken       string        `yaml:"jwt_token"`
 	Host           string        `yaml:"host"`
 	Port           int           `yaml:"port"`
 	ProxyURL       string        `yaml:"proxy_url"`
@@ -65,6 +68,9 @@ func (c *Config) init() {
 	if c.Host == "" {
 		c.Host = defaultHost
 	}
+	if c.JWTAlgorithm == "" {
+		c.JWTAlgorithm = defaultJWTAlgorithm
+	}
 }
 
 func (c *Config) validate() error {
@@ -73,8 +79,11 @@ func (c *Config) validate() error {
 			return fmt.Errorf("either cache params by ID or cache params by name are supported")
 		}
 	}
-	if c.ApiToken == "" {
-		return fmt.Errorf("token is mandatory")
+	if c.JWTToken == "" {
+		return fmt.Errorf("jwt_token is mandatory")
+	}
+	if c.JWTSecret == "" {
+		return fmt.Errorf("jwt_secret is mandatory")
 	}
 	return nil
 }

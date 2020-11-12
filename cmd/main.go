@@ -11,12 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
-
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
 
@@ -55,18 +50,11 @@ func startCommand(c *cli.Context) error {
 		return err
 	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(logger.NewStructuredLogger(log.Logger))
-	r.Use(middleware.Recoverer)
-
 	metrics.Register()
-	r.HandleFunc("/healthz", server.HealthFunc)
-	r.HandleFunc("/ready", server.ReadyFunc)
-	r.Handle("/metrics", promhttp.Handler())
-	r.HandleFunc("/*", server.RPCProxy)
 
-	s := server.StartHTTPServer()
+	handler := proxy.PrepareRoutes(config, log, server)
+
+	s := server.StartHTTPServer(handler)
 
 	sig := <-stop
 	log.Infof("Caught sig: %+v. Waiting process finishing...", sig)
