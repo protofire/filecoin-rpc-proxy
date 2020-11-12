@@ -19,7 +19,7 @@ VERSION		?= $(shell git describe --tags 2> /dev/null || \
 			   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 GOARCH		:= amd64
 LDFLAGS		:= "-w -s -X 'main.Version=${VERSION}'"
-CMD_PACKAGE := ./cmd
+CMD_PACKAGE := ./cmd/proxy
 BINARY 		?= ./proxy
 
 $(GOBIN):

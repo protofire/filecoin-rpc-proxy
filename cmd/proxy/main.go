@@ -17,7 +17,7 @@ import (
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
 
-	config2 "github.com/protofire/filecoin-rpc-proxy/internal/config"
+	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -36,7 +36,7 @@ func startCommand(c *cli.Context) error {
 	if !utils.FileExists(configFile) {
 		return fmt.Errorf("cannot find config file file: %s", configFile)
 	}
-	config, err := config2.NewConfigFromFile(configFile)
+	config, err := config.NewConfigFromFile(configFile)
 	if err != nil {
 		return err
 	}
