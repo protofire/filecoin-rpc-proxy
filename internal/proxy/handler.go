@@ -63,7 +63,7 @@ func (t *transport) getResponseCache(req requests.RpcRequest) (requests.RpcRespo
 }
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	metrics.SetRequestCounter()
+	metrics.SetRequestsCounter()
 	log := t.logger
 	if reqID := middleware.GetReqID(req.Context()); reqID != "" {
 		log = log.WithField("requestID", reqID)
@@ -73,7 +73,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	parsedRequests, err := requests.ParseRequests(req)
 	if err != nil {
 		log.Errorf("Failed to parse requests: %v", err)
-		metrics.SetRequestErrorCounter()
+		metrics.SetRequestsErrorCounter()
 		resp, err := requests.JsonInvalidResponse(err.Error())
 		if err != nil {
 			log.Errorf("Failed to prepare error response: %v", err)
@@ -96,9 +96,12 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		proxyRequests = append(proxyRequests, parsedRequests[idx])
 	}
 
+	inCacheRequestsCount := len(parsedRequests) - len(proxyRequests)
+
 	var proxyBody []byte
 	switch len(proxyRequests) {
 	case 0:
+		metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 		return preparedResponses.Response()
 	case 1:
 		proxyBody, err = json.Marshal(proxyRequests[0])
@@ -116,22 +119,30 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	elapsed := time.Since(start)
 	metrics.SetRequestDuration(elapsed.Milliseconds())
 	if err != nil {
+		metrics.SetRequestsErrorCounter()
 		return res, err
 	}
-	responses, err := requests.ParseResponses(res)
+	responses, body, err := requests.ParseResponses(res)
 	if err != nil {
-		return res, err
+		metrics.SetRequestsErrorCounter()
+		return requests.JsonRPCErrorResponse(res.StatusCode, body)
 	}
 
 	for idx, response := range responses {
 		if response.Error == nil {
-			err := t.setResponseCache(parsedRequests[proxyRequestIdx[idx]], response)
+			request, ok := parsedRequests.FindByID(response.ID)
+			if !ok {
+				request = parsedRequests[proxyRequestIdx[idx]]
+			}
+			err := t.setResponseCache(request, response)
 			if err != nil {
 				t.logger.Errorf("Cannot set cached response: %v", err)
 			}
 		}
 		preparedResponses[proxyRequestIdx[idx]] = response
 	}
+
+	metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 
 	resp, err := preparedResponses.Response()
 	if err != nil {

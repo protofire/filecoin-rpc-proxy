@@ -53,8 +53,8 @@ func SetRequestsErrorCounter() {
 }
 
 // SetRequestsCachedCounter ...
-func SetRequestsCachedCounter() {
-	cachedProxyRequests.Inc()
+func SetRequestsCachedCounter(n int) {
+	cachedProxyRequests.Add(float64(n))
 }
 
 // Register ...

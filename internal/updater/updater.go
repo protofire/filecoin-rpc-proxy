@@ -104,7 +104,7 @@ func (u *Updater) update() error {
 	if reqs.IsEmpty() {
 		return nil
 	}
-	responses, err := requests.Request(u.url, u.token, reqs)
+	responses, _, err := requests.Request(u.url, u.token, reqs)
 	if err != nil {
 		return err
 	}

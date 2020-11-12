@@ -116,7 +116,7 @@ func TestTransportWithCache(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	responses, err := requests.ParseResponses(resp)
+	responses, _, err := requests.ParseResponses(resp)
 	require.NoError(t, err)
 	require.Len(t, responses, 1)
 	require.Equal(t, responses[0].Result, result)
@@ -203,7 +203,7 @@ func TestTransportBulkRequest(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	responses, err := requests.ParseResponses(resp)
+	responses, _, err := requests.ParseResponses(resp)
 	require.NoError(t, err)
 	require.Len(t, responses, 2)
 	require.Equal(t, responses[0].Result, result1)

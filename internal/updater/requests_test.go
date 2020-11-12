@@ -61,7 +61,7 @@ func TestRequest(t *testing.T) {
 	token, err := auth.NewJWT(conf.JWTSecret, conf.JWTAlgorithm, []string{"admin"})
 	require.NoError(t, err)
 
-	responses, err := requests.Request(
+	responses, _, err := requests.Request(
 		frontend.URL,
 		string(token),
 		requests.RpcRequests{request},

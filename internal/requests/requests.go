@@ -192,22 +192,22 @@ func ParseRequests(req *http.Request) (RpcRequests, error) {
 	return res, nil
 }
 
-func ParseResponses(req *http.Response) (RpcResponses, error) {
+func ParseResponses(req *http.Response) (RpcResponses, []byte, error) {
 	var err error
 	var res RpcResponses
 	body, err := readBody(req.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(body) > 0 {
 		if res, err = parseResponseBody(body); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return res, nil
+	return res, body, nil
 }
 
-func JsonRPCError(id interface{}, jsonCode int, msg string) interface{} {
+func jsonRPCError(id interface{}, jsonCode int, msg string) interface{} {
 	resp := errResponse{
 		Version: "2.0",
 		ID:      id,
@@ -220,15 +220,15 @@ func JsonRPCError(id interface{}, jsonCode int, msg string) interface{} {
 }
 
 func JsonRPCUnauthenticated() interface{} {
-	return JsonRPCError(
+	return jsonRPCError(
 		nil,
 		jsonRPCInternal,
-		"Unauthenticated",
+		"Unauthorized",
 	)
 }
 
 func JsonInvalidResponse(message string) (*http.Response, error) {
-	return JsonRPCResponse(http.StatusBadRequest, JsonRPCError(nil, jsonRPCInvalidParams, message))
+	return JsonRPCResponse(http.StatusBadRequest, jsonRPCError(nil, jsonRPCInvalidParams, message))
 }
 
 // jsonRPCResponse returns a JSON response containing v, or a plaintext generic
@@ -247,20 +247,29 @@ func JsonRPCResponse(httpCode int, v interface{}) (*http.Response, error) {
 	}, nil
 }
 
-func Request(url, token string, requests RpcRequests) (RpcResponses, error) {
+func JsonRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
+	rpcErr := jsonRPCError(
+		nil,
+		jsonRPCInternal,
+		string(data),
+	)
+	return JsonRPCResponse(httpCode, rpcErr)
+}
+
+func Request(url, token string, requests RpcRequests) (RpcResponses, []byte, error) {
 	jsonBody, err := json.Marshal(requests)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	body := ioutil.NopCloser(bytes.NewBuffer(jsonBody))
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return ParseResponses(resp)
 }
