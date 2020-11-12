@@ -74,7 +74,7 @@ func (c *Config) validate() error {
 		}
 	}
 	if c.ApiToken == "" {
-		return fmt.Errorf("api token is mandatory")
+		return fmt.Errorf("token is mandatory")
 	}
 	return nil
 }
