@@ -7,6 +7,7 @@ require (
 	github.com/gbrlsnchs/jwt/v3 v3.0.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/jwtauth v4.0.4+incompatible
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.8.0
 	github.com/prometheus/common v0.15.0 // indirect

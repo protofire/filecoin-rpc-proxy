@@ -1,4 +1,4 @@
-package proxy
+package matcher
 
 import (
 	"crypto/sha256"
@@ -12,8 +12,14 @@ import (
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 )
 
-type matcher interface {
-	key(request rpcRequest) string
+type method struct {
+	Name   string
+	Params interface{}
+}
+
+type Matcher interface {
+	Key(method string, params interface{}) string
+	Methods() []method
 }
 
 type cacheParams struct {
@@ -29,14 +35,14 @@ func (p cacheParams) match(params interface{}) ([]interface{}, error) {
 	}
 	var paramsForCache []interface{}
 	if len(p.paramsInCacheID) == 0 && len(p.paramsInCacheName) == 0 {
-		// cache by all params
+		// cache by all Params
 		paramsForCache = append(paramsForCache, params)
 		return paramsForCache, nil
 	}
 	if len(p.paramsInCacheID) != 0 {
 		sliceParams, ok := params.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("cannot parse method parameters %#v with cache params by ID: %#v", params, p.paramsInCacheID)
+			return nil, fmt.Errorf("cannot parse method parameters %#v with cache Params by ID: %#v", params, p.paramsInCacheID)
 		}
 		for idx := range p.paramsInCacheID {
 			paramsForCache = append(paramsForCache, sliceParams[idx])
@@ -45,7 +51,7 @@ func (p cacheParams) match(params interface{}) ([]interface{}, error) {
 	}
 	mapParams, ok := params.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("cannot parse method parameters %#v with cache params by Name: %#v", params, p.paramsInCacheName)
+		return nil, fmt.Errorf("cannot parse method parameters %#v with cache Params by Name: %#v", params, p.paramsInCacheName)
 	}
 	for _, key := range p.paramsInCacheName {
 		paramsForCache = append(paramsForCache, mapParams[key])
@@ -54,46 +60,61 @@ func (p cacheParams) match(params interface{}) ([]interface{}, error) {
 }
 
 type match struct {
-	methods map[string]cacheParams
+	cacheMethods map[string]cacheParams
+	methods      []method
 }
 
 func newMatcher() *match {
 	methods := make(map[string]cacheParams)
-	return &match{methods: methods}
+	return &match{cacheMethods: methods}
 }
 
-// NewMatcherFromConfig init match from config
-func NewMatcherFromConfig(c *config.Config) *match {
+func (m match) addCacheMethod(method config.CacheMethod) {
+	paramsInCacheName := method.ParamsInCacheByName
+	sort.Strings(paramsInCacheName)
+	m.cacheMethods[method.Name] = cacheParams{
+		cacheByParams:     method.CacheByParams,
+		paramsInCacheID:   method.ParamsInCacheByID,
+		paramsInCacheName: paramsInCacheName,
+		paramsForRequest:  method.ParamsForRequest,
+	}
+}
+
+// FromConfig init match from config
+func FromConfig(c *config.Config) *match {
 	matcher := newMatcher()
 	for _, method := range c.CacheMethods {
-		paramsInCacheName := method.ParamsInCacheByName
-		sort.Strings(paramsInCacheName)
-		matcher.methods[method.Name] = cacheParams{
-			cacheByParams:     method.CacheByParams,
-			paramsInCacheID:   method.ParamsInCacheByID,
-			paramsInCacheName: paramsInCacheName,
-			paramsForRequest:  method.ParamsForRequest,
-		}
+		matcher.addCacheMethod(method)
+	}
+	for name, methods := range matcher.cacheMethods {
+		matcher.methods = append(matcher.methods, method{
+			Name:   name,
+			Params: methods.paramsForRequest,
+		})
 	}
 	return matcher
 }
 
-func (m match) key(r rpcRequest) string {
-	cacheParams, ok := m.methods[r.Method]
+func (m match) Key(method string, params interface{}) string {
+	cacheParams, ok := m.cacheMethods[method]
 	if !ok {
 		return ""
 	}
-	key, err := cacheParams.match(r.Params)
+	key, err := cacheParams.match(params)
 	if err != nil {
 		logger.Log.Error(err)
 		return ""
 	}
 	strKey := interfaceSliceToString(key)
-	params := []string{r.Method}
+	keyParams := []string{method}
 	if strKey != "" {
-		params = append(params, strKey)
+		keyParams = append(keyParams, strKey)
 	}
-	return strings.Join(params, "_")
+	return strings.Join(keyParams, "_")
+}
+
+func (m match) Methods() []method {
+	return m.methods
 }
 
 func interfaceSliceToString(params []interface{}) string {

@@ -9,6 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/updater"
+
+	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
+	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
@@ -25,7 +30,7 @@ import (
 var defaultConfigFile = "proxy.yaml"
 
 func startCommand(c *cli.Context) error {
-	configFile := c.String("config")
+	configFile := c.String("conf")
 	if configFile == "" {
 		home, err := utils.GetUserHome()
 		if err != nil {
@@ -34,33 +39,55 @@ func startCommand(c *cli.Context) error {
 		configFile = path.Join(home, defaultConfigFile)
 	}
 	if !utils.FileExists(configFile) {
-		return fmt.Errorf("cannot find config file file: %s", configFile)
+		return fmt.Errorf("cannot find conf file file: %s", configFile)
 	}
-	config, err := config.NewConfigFromFile(configFile)
+	conf, err := config.NewConfigFromFile(configFile)
 	if err != nil {
 		return err
 	}
-	log := logger.InitLogger(config.LogLevel, config.LogPrettyPrint)
+	log := logger.InitLogger(conf.LogLevel, conf.LogPrettyPrint)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	server, err := proxy.NewServer(config)
+	cacheImp := cache.NewMemoryCacheFromConfig(conf)
+	matcherImp := matcher.FromConfig(conf)
+	transportImp := proxy.NewTransport(cacheImp, matcherImp, log)
+
+	updaterImp, err := updater.FromConfig(conf, cacheImp, matcherImp, log)
+	if err != nil {
+		return err
+	}
+
+	server, err := proxy.FromConfigWithTransport(conf, log, transportImp)
 	if err != nil {
 		return err
 	}
 
 	metrics.Register()
 
-	handler := proxy.PrepareRoutes(config, log, server)
-
+	handler := proxy.PrepareRoutes(conf, log, server)
 	s := server.StartHTTPServer(handler)
 
+	ctx, done := context.WithCancel(context.Background())
+	go updaterImp.Start(ctx, conf.Period)
+
 	sig := <-stop
-	log.Infof("Caught sig: %+v. Waiting process finishing...", sig)
+	log.Infof("Caught sig: %+v. Waiting process is being stopped...", sig)
+	done()
+
+	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancelUpdater()
+
+	if updaterImp.StopWithTimeout(ctxUpdater) {
+		log.Info("Shut down server gracefully")
+	} else {
+		log.Info("Shut down server forcibly")
+	}
+
 	stopTimeout := 2
-	ctxServer, doneServer := context.WithTimeout(context.Background(), time.Duration(stopTimeout)*time.Second)
-	defer doneServer()
+	ctxServer, cancelServer := context.WithTimeout(context.Background(), time.Duration(stopTimeout)*time.Second)
+	defer cancelServer()
 	if err = s.Shutdown(ctxServer); err != nil {
 		log.Errorf("Could not stop server within %d seconds: %v", stopTimeout, err)
 	} else {

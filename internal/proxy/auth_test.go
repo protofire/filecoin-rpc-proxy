@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/testhelpers"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/auth"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
@@ -16,9 +18,9 @@ import (
 func TestServerAuxiliaryFunc(t *testing.T) {
 
 	method := "test"
-	conf, err := getConfig("http://test.com", method)
+	conf, err := testhelpers.GetConfig("http://test.com", method)
 	require.NoError(t, err)
-	server, err := NewServer(conf)
+	server, err := FromConfig(conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
 
@@ -43,9 +45,9 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 	defer backend.Close()
 
 	method := "test"
-	conf, err := getConfig(backend.URL, method)
+	conf, err := testhelpers.GetConfig(backend.URL, method)
 	require.NoError(t, err)
-	server, err := NewServer(conf)
+	server, err := FromConfig(conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
 
@@ -67,16 +69,15 @@ func TestServerJWTAuthFunc(t *testing.T) {
 	defer backend.Close()
 
 	method := "test"
-	conf, err := getConfig(backend.URL, method)
+	conf, err := testhelpers.GetConfig(backend.URL, method)
 	require.NoError(t, err)
-	server, err := NewServer(conf)
+	server, err := FromConfig(conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
-
 	frontend := httptest.NewServer(handler)
 	defer frontend.Close()
 
-	jwtToken, err := auth.NewJWT(conf.JWTSecret, "admin")
+	jwtToken, err := auth.NewJWT(conf.JWTSecret, conf.JWTAlgorithm, []string{"admin"})
 	require.NoError(t, err)
 	url := fmt.Sprintf("%s/%s", frontend.URL, "test")
 
@@ -84,8 +85,7 @@ func TestServerJWTAuthFunc(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwtToken))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := (&http.Client{}).Do(req)
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.StatusCode)
 

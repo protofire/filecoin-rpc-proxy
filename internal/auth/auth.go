@@ -19,14 +19,14 @@ func getJWTAlgorithm(alg string, secret []byte) *jwt.HMACSHA {
 	case "HS256":
 		algFunc = jwt.NewHS256
 	case "HS512":
-		algFunc = jwt.NewHS256
+		algFunc = jwt.NewHS512
 	default:
 		algFunc = jwt.NewHS256
 	}
 	return algFunc(secret)
 }
 
-func NewJWT(secret, alg string, perms ...string) ([]byte, error) {
+func NewJWT(secret, alg string, perms []string) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms,
 	}

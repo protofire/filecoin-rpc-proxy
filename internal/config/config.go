@@ -16,6 +16,7 @@ const (
 	defaultPort                 = 8080
 	defaultHost                 = "0.0.0.0"
 	defaultJWTAlgorithm         = "HS256"
+	defaultPeriod               = 300
 )
 
 type CacheMethod struct {
@@ -38,6 +39,7 @@ type Config struct {
 	JWTToken       string        `yaml:"jwt_token"`
 	Host           string        `yaml:"host"`
 	Port           int           `yaml:"port"`
+	Period         int           `yaml:"period"`
 	ProxyURL       string        `yaml:"proxy_url"`
 	CacheSettings  CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel       string        `yaml:"log_level"`
@@ -71,6 +73,9 @@ func (c *Config) init() {
 	}
 	if c.JWTAlgorithm == "" {
 		c.JWTAlgorithm = defaultJWTAlgorithm
+	}
+	if c.Period == 0 {
+		c.Period = defaultPeriod
 	}
 }
 

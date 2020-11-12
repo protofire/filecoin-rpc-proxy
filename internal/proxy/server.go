@@ -6,6 +6,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
@@ -20,24 +22,24 @@ type Server struct {
 	target *url.URL
 	logger *logrus.Entry
 	proxy  *httputil.ReverseProxy
-	transport
+	*transport
 }
 
-func NewServer(c *config.Config) (*Server, error) {
+func FromConfig(c *config.Config) (*Server, error) {
 	proxyURL, err := url.Parse(c.ProxyURL)
 	if err != nil {
 		return nil, err
 	}
 	log := logger.InitLogger(c.LogLevel, c.LogPrettyPrint)
-	transport := *newTransport(
-		log,
+	transport := NewTransport(
 		cache.NewMemoryCacheFromConfig(c),
-		NewMatcherFromConfig(c),
+		matcher.FromConfig(c),
+		log,
 	)
-	return NewServerWithTransport(proxyURL, c.Host, c.Port, log, transport)
+	return newServer(proxyURL, c.Host, c.Port, log, transport)
 }
 
-func NewServerWithTransport(proxyURL *url.URL, host string, port int, log *logrus.Entry, transport transport) (*Server, error) {
+func newServer(proxyURL *url.URL, host string, port int, log *logrus.Entry, transport *transport) (*Server, error) {
 	log.Info("Initializing proxy server...")
 	s := &Server{
 		host:      host,
@@ -47,8 +49,16 @@ func NewServerWithTransport(proxyURL *url.URL, host string, port int, log *logru
 		proxy:     httputil.NewSingleHostReverseProxy(proxyURL),
 		transport: transport,
 	}
-	s.proxy.Transport = &s.transport
+	s.proxy.Transport = transport
 	return s, nil
+}
+
+func FromConfigWithTransport(c *config.Config, log *logrus.Entry, transport *transport) (*Server, error) {
+	proxyURL, err := url.Parse(c.ProxyURL)
+	if err != nil {
+		return nil, err
+	}
+	return newServer(proxyURL, c.Host, c.Port, log, transport)
 }
 
 func (p *Server) RPCProxy(w http.ResponseWriter, r *http.Request) {
