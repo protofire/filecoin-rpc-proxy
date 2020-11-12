@@ -31,6 +31,7 @@ type CacheSettings struct {
 
 type Config struct {
 	CacheMethods   []CacheMethod `yaml:"cache_methods,omitempty"`
+	ApiToken       string        `yaml:"token"`
 	Host           string        `yaml:"host"`
 	Port           int           `yaml:"port"`
 	ProxyURL       string        `yaml:"proxy_url"`
@@ -71,6 +72,9 @@ func (c *Config) validate() error {
 		if len(params.ParamsInCacheID) > 0 && len(params.ParamsInCacheName) > 0 {
 			return fmt.Errorf("either cache params by ID or cache params by name are supported")
 		}
+	}
+	if c.ApiToken == "" {
+		return fmt.Errorf("api token is mandatory")
 	}
 	return nil
 }

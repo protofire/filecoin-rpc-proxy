@@ -107,8 +107,8 @@ func prepareCliApp() *cli.App {
      cache_by_params: true
      params_in_cache_id:
        - 1
-       - 2  
-   
+       - 2
+
    ---
    proxy_url: http://test.com
    port: 8080

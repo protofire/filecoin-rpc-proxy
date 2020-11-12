@@ -5,6 +5,11 @@ import (
 )
 
 var (
+	cacheSize = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "cache",
+		Name:      "cache_size",
+		Help:      "The proxy cache size",
+	})
 	proxyRequestDuration = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "proxy",
 		Name:      "proxy_request_duration",
@@ -27,20 +32,32 @@ var (
 	})
 )
 
+// SetRequestDuration ...
 func SetRequestDuration(n int64) {
 	proxyRequestDuration.Set(float64(n))
 }
 
+// SetCacheSize ...
+func SetCacheSize(n int64) {
+	cacheSize.Set(float64(n))
+}
+
+// SetRequestCounter ...
 func SetRequestCounter() {
 	proxyRequests.Inc()
 }
+
+// SetRequestErrorCounter ...
 func SetRequestErrorCounter() {
 	errorProxyRequests.Inc()
 }
+
+// SetRequestCachedCounter ...
 func SetRequestCachedCounter() {
 	cachedProxyRequests.Inc()
 }
 
+// Register ...
 func Register() {
 	prometheus.MustRegister(proxyRequestDuration)
 	prometheus.MustRegister(errorProxyRequests)

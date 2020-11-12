@@ -11,27 +11,31 @@ import (
 
 var (
 	proxyURL         = "http://test.com"
+	token            = "token"
 	methodName       = "test"
 	paramInCacheID   = 1
 	paramInCacheName = "field"
 	configParamsByID = fmt.Sprintf(`
 proxy_url: %s
+token: %s
 cache_methods:
 - name: %s
   cache_by_params: true
   params_in_cache_id:
     - %s
-`, proxyURL, methodName, strconv.Itoa(paramInCacheID))
+`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID))
 	configParamsByName = fmt.Sprintf(`
 proxy_url: %s
+token: %s
 cache_methods:
 - name: %s
   cache_by_params: true
   params_in_cache_name:
     - %s
-`, proxyURL, methodName, paramInCacheName)
+`, proxyURL, token, methodName, paramInCacheName)
 	configParamsByIDAndName = fmt.Sprintf(`
 proxy_url: %s
+token: %s
 cache_methods:
 - name: %s
   cache_by_params: true
@@ -39,7 +43,7 @@ cache_methods:
     - %s
   params_in_cache_name:
     - %s
-`, proxyURL, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
+`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
 
 func TestNewConfigCacheParamsByID(t *testing.T) {
