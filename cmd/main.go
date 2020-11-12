@@ -93,7 +93,11 @@ func prepareCliApp() *cli.App {
    cache_methods:
    - name: method
      cache_by_params: true
-     params_in_cache_id:
+     params_for_request:
+       - 1
+       - one
+       - two
+     params_in_cache_by_id:
        - 1
        - 2
 
@@ -103,7 +107,11 @@ func prepareCliApp() *cli.App {
    cache_methods:
    - name: method
      cache_by_params: true
-     params_in_cache_name:
+     params_for_request:
+       - 1
+       - one
+       - two
+     params_in_cache_by_name:
        - name1
        - name2
    `

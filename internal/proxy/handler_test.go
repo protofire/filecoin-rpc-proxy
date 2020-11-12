@@ -31,7 +31,7 @@ log_pretty_print: true
 cache_methods:
 - name: %s
   cache_by_params: true
-  params_in_cache_id:
+  params_in_cache_by_id:
     - %s
 `
 )

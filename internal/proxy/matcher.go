@@ -20,6 +20,7 @@ type cacheParams struct {
 	cacheByParams     bool
 	paramsInCacheID   []int
 	paramsInCacheName []string
+	paramsForRequest  interface{}
 }
 
 func (p cacheParams) match(params interface{}) ([]interface{}, error) {
@@ -65,12 +66,13 @@ func newMatcher() *match {
 func NewMatcherFromConfig(c *config.Config) *match {
 	matcher := newMatcher()
 	for _, method := range c.CacheMethods {
-		paramsInCacheName := method.ParamsInCacheName
+		paramsInCacheName := method.ParamsInCacheByName
 		sort.Strings(paramsInCacheName)
 		matcher.methods[method.Name] = cacheParams{
 			cacheByParams:     method.CacheByParams,
-			paramsInCacheID:   method.ParamsInCacheID,
+			paramsInCacheID:   method.ParamsInCacheByID,
 			paramsInCacheName: paramsInCacheName,
+			paramsForRequest:  method.ParamsForRequest,
 		}
 	}
 	return matcher

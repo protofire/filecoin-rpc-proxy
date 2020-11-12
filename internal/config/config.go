@@ -19,10 +19,11 @@ const (
 )
 
 type CacheMethod struct {
-	Name              string   `yaml:"name"`
-	CacheByParams     bool     `yaml:"cache_by_params,omitempty"`
-	ParamsInCacheID   []int    `yaml:"params_in_cache_id,omitempty"`
-	ParamsInCacheName []string `yaml:"params_in_cache_name,omitempty"`
+	Name                string      `yaml:"name"`
+	CacheByParams       bool        `yaml:"cache_by_params,omitempty"`
+	ParamsInCacheByID   []int       `yaml:"params_in_cache_by_id,omitempty"`
+	ParamsInCacheByName []string    `yaml:"params_in_cache_by_name,omitempty"`
+	ParamsForRequest    interface{} `yaml:"params_for_request,omitempty"`
 }
 
 type CacheSettings struct {
@@ -75,7 +76,7 @@ func (c *Config) init() {
 
 func (c *Config) validate() error {
 	for _, params := range c.CacheMethods {
-		if len(params.ParamsInCacheID) > 0 && len(params.ParamsInCacheName) > 0 {
+		if len(params.ParamsInCacheByID) > 0 && len(params.ParamsInCacheByName) > 0 {
 			return fmt.Errorf("either cache params by ID or cache params by name are supported")
 		}
 	}

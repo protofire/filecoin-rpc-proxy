@@ -22,7 +22,11 @@ jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
-  params_in_cache_id:
+  params_for_request:
+    - one
+    - three
+    - two
+  params_in_cache_by_id:
     - %s
 `, proxyURL, token, token, methodName, strconv.Itoa(paramInCacheID))
 	configParamsByName = fmt.Sprintf(`
@@ -32,7 +36,11 @@ jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
-  params_in_cache_name:
+  params_for_request:
+    - 1
+    - one
+    - two
+  params_in_cache_by_name:
     - %s
 `, proxyURL, token, token, methodName, paramInCacheName)
 	configParamsByIDAndName = fmt.Sprintf(`
@@ -42,9 +50,13 @@ jwt_secret: %s
 cache_methods:
 - name: %s
   cache_by_params: true
-  params_in_cache_id:
+  params_for_request:
+    - 1
+    - one
+    - two
+  params_in_cache_by_id:
     - %s
-  params_in_cache_name:
+  params_in_cache_by_name:
     - %s
 `, proxyURL, token, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
@@ -55,7 +67,7 @@ func TestNewConfigCacheParamsByID(t *testing.T) {
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
 	require.Equal(t, config.CacheMethods[0].Name, methodName)
-	require.Equal(t, config.CacheMethods[0].ParamsInCacheID[0], paramInCacheID)
+	require.Equal(t, config.CacheMethods[0].ParamsInCacheByID[0], paramInCacheID)
 	require.Equal(t, config.CacheSettings.DefaultExpiration, 0)
 	require.Equal(t, config.CacheSettings.CleanupInterval, -1)
 }
@@ -66,7 +78,7 @@ func TestNewConfigCacheParamsByName(t *testing.T) {
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
 	require.Equal(t, config.CacheMethods[0].Name, methodName)
-	require.Equal(t, config.CacheMethods[0].ParamsInCacheName[0], paramInCacheName)
+	require.Equal(t, config.CacheMethods[0].ParamsInCacheByName[0], paramInCacheName)
 }
 
 func TestNewConfigCacheParamsByIDAndName(t *testing.T) {
