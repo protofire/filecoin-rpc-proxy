@@ -1,26 +1,26 @@
 # Makefile
 
-PWD := $(shell pwd)
-BASE_DIR := $(shell basename $(PWD))
+PWD 				:= $(shell pwd)
+BASE_DIR 			:= $(shell basename $(PWD))
 # Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
-GOBIN_DEFAULT := $(GOPATH)/bin
-export GOBIN ?= $(GOBIN_DEFAULT)
-export GO111MODULE := on
-TESTARGS_DEFAULT := -v -race
-TESTARGS ?= $(TESTARGS_DEFAULT)
-HAS_GOLANGCI := $(shell command -v golangci-lint;)
-HAS_GOIMPORTS := $(shell command -v goimports;)
-DIST_DIRS	= find * -type d -exec
-TEMP_DIR	:=$(shell mktemp -d)
-GOOS		?= $(shell go env GOOS)
-VERSION		?= $(shell git describe --tags 2> /dev/null || \
-			   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
-GOARCH		:= amd64
-LDFLAGS		:= "-w -s -X 'main.Version=${VERSION}'"
-CMD_PACKAGE := ./cmd/proxy
-BINARY 		?= ./proxy
+GOPATH_DEFAULT 		:= $(PWD)/.go
+export GOPATH 		?= $(GOPATH_DEFAULT)
+GOBIN_DEFAULT 		:= $(GOPATH)/bin
+export GOBIN 		?= $(GOBIN_DEFAULT)
+export GO111MODULE 	:= on
+TEST_ARGS_DEFAULT 	:= -v -race
+TEST_ARGS 			?= $(TEST_ARGS_DEFAULT)
+HAS_GOLANGCI 		:= $(shell command -v golangci-lint;)
+HAS_GOIMPORTS 		:= $(shell command -v goimports;)
+DIST_DIRS			= find * -type d -exec
+TEMP_DIR			:= $(shell mktemp -d)
+GOOS				?= $(shell go env GOOS)
+DEFAULT_VERSION 	:= 0.0.1
+VERSION				?= $(shell git describe --exact-match --tags 2>/dev/null || echo ${DEFAULT_VERSION})
+GOARCH				:= amd64
+LDFLAGS				:= "-w -s -X 'main.Version=${VERSION}'"
+CMD_PACKAGE 		:= ./cmd/proxy
+BINARY 				?= ./proxy
 
 $(GOBIN):
 	echo "create gobin"
@@ -43,7 +43,7 @@ test: unit
 
 check: work fmt vet goimports golangci
 unit: work
-	go test -tags=unit $(TESTARGS) ./...
+	go test -tags=unit $(TEST_ARGS) ./...
 
 fmt:
 	go fmt ./...
@@ -65,7 +65,7 @@ endif
 	golangci-lint run ./...
 
 cover: work
-	go test $(TESTARGS) -tags=unit -cover -coverpkg=./ ./...
+	go test $(TEST_ARGS) -tags=unit -cover -coverpkg=./ ./...
 
 shell:
 	$(SHELL) -i
