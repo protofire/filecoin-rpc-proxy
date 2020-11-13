@@ -6,6 +6,10 @@ Json RPC proxy with a cache
     make clean check test build
     make install
 
+#### Docker
+
+    docker build -t proxy .
+
 #### Start
 
     ./proxy --help

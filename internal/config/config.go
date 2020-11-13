@@ -16,7 +16,7 @@ const (
 	defaultPort                 = 8080
 	defaultHost                 = "0.0.0.0"
 	defaultJWTAlgorithm         = "HS256"
-	defaultPeriod               = 300
+	defaultPeriod               = 600
 )
 
 type CacheMethod struct {
@@ -33,17 +33,16 @@ type CacheSettings struct {
 }
 
 type Config struct {
-	CacheMethods   []CacheMethod `yaml:"cache_methods,omitempty"`
-	JWTAlgorithm   string        `yaml:"jwt_alg"`
-	JWTSecret      string        `yaml:"jwt_secret"`
-	JWTToken       string        `yaml:"jwt_token"`
-	Host           string        `yaml:"host"`
-	Port           int           `yaml:"port"`
-	Period         int           `yaml:"period"`
-	ProxyURL       string        `yaml:"proxy_url"`
-	CacheSettings  CacheSettings `yaml:"cache_settings,omitempty"`
-	LogLevel       string        `yaml:"log_level"`
-	LogPrettyPrint bool          `yaml:"log_pretty_print"`
+	CacheMethods      []CacheMethod `yaml:"cache_methods,omitempty"`
+	JWTAlgorithm      string        `yaml:"jwt_alg"`
+	JWTSecret         string        `yaml:"jwt_secret"`
+	Host              string        `yaml:"host"`
+	Port              int           `yaml:"port"`
+	UpdateCachePeriod int           `yaml:"update_cache_period"`
+	ProxyURL          string        `yaml:"proxy_url"`
+	CacheSettings     CacheSettings `yaml:"cache_settings,omitempty"`
+	LogLevel          string        `yaml:"log_level"`
+	LogPrettyPrint    bool          `yaml:"log_pretty_print"`
 }
 
 func New(reader io.Reader) (*Config, error) {
@@ -74,8 +73,8 @@ func (c *Config) Init() {
 	if c.JWTAlgorithm == "" {
 		c.JWTAlgorithm = defaultJWTAlgorithm
 	}
-	if c.Period == 0 {
-		c.Period = defaultPeriod
+	if c.UpdateCachePeriod == 0 {
+		c.UpdateCachePeriod = defaultPeriod
 	}
 }
 
@@ -84,9 +83,6 @@ func (c *Config) Validate() error {
 		if len(params.ParamsInCacheByID) > 0 && len(params.ParamsInCacheByName) > 0 {
 			return fmt.Errorf("either cache params by ID or cache params by name are supported")
 		}
-	}
-	if c.JWTToken == "" {
-		return fmt.Errorf("jwt_token is mandatory")
 	}
 	if c.JWTSecret == "" {
 		return fmt.Errorf("jwt_secret is mandatory")

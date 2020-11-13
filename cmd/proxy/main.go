@@ -73,7 +73,7 @@ func startCommand(c *cli.Context) error {
 	s := server.StartHTTPServer(handler)
 
 	ctx, done := context.WithCancel(context.Background())
-	go updaterImp.Start(ctx, conf.Period)
+	go updaterImp.Start(ctx, conf.UpdateCachePeriod)
 
 	sig := <-stop
 	log.Infof("Caught sig: %+v. Waiting process is being stopped...", sig)

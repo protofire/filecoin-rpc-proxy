@@ -3,7 +3,7 @@ jwt_secret: secret
 jwt_alg: HS256
 port: 8080
 host: 0.0.0.0
-period: 300
+update_cache_period: 300
 log_level: INFO
 cache_methods:
   - name: method

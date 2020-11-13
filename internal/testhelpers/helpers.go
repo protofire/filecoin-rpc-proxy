@@ -11,7 +11,6 @@ var (
 func GetConfig(url string, methods ...string) (*config.Config, error) {
 	conf := config.Config{
 		JWTSecret: token,
-		JWTToken:  token,
 		ProxyURL:  url,
 	}
 
