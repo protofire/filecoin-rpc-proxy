@@ -23,16 +23,16 @@ func TestRequest(t *testing.T) {
 	requestID := "1"
 	result := float64(15)
 
-	response := requests.RpcResponse{
+	response := requests.RPCResponse{
 		JSONRPC: "2.0",
 		ID:      requestID,
 		Result:  result,
 		Error:   nil,
 	}
 
-	responseJson, err := json.Marshal(response)
+	responseJSON, err := json.Marshal(response)
 	require.NoError(t, err)
-	request := requests.RpcRequest{
+	request := requests.RPCRequest{
 		JSONRPC: "2.0",
 		ID:      requestID,
 		Method:  method,
@@ -42,7 +42,7 @@ func TestRequest(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err := fmt.Fprint(w, string(responseJson))
+		_, err := fmt.Fprint(w, string(responseJSON))
 		if err != nil {
 			logger.Log.Error(err)
 		}
@@ -64,7 +64,7 @@ func TestRequest(t *testing.T) {
 	responses, _, err := requests.Request(
 		frontend.URL,
 		string(token),
-		requests.RpcRequests{request},
+		requests.RPCRequests{request},
 	)
 	require.NoError(t, err)
 	require.Len(t, responses, 1)

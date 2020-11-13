@@ -37,7 +37,7 @@ func Authenticator(next http.Handler) http.Handler {
 		token, _, err := jwtauth.FromContext(r.Context())
 
 		if err != nil {
-			resp := requests.JsonRPCUnauthenticated()
+			resp := requests.JSONRPCUnauthenticated()
 			data, err := json.Marshal(resp)
 			if err != nil {
 				http.Error(w, http.StatusText(401), 401)
@@ -48,7 +48,7 @@ func Authenticator(next http.Handler) http.Handler {
 		}
 
 		if token == nil || !token.Valid {
-			resp := requests.JsonRPCUnauthenticated()
+			resp := requests.JSONRPCUnauthenticated()
 			data, err := json.Marshal(resp)
 			if err != nil {
 				http.Error(w, http.StatusText(401), 401)

@@ -18,23 +18,23 @@ const (
 	jsonRPCInternal      = -32603
 )
 
-type RpcResponses []RpcResponse
-type RpcRequests []RpcRequest
+type RPCResponses []RPCResponse
+type RPCRequests []RPCRequest
 
-func (r RpcRequests) FindByID(id interface{}) (RpcRequest, bool) {
+func (r RPCRequests) FindByID(id interface{}) (RPCRequest, bool) {
 	for _, req := range r {
 		if req.ID == id {
 			return req, true
 		}
 	}
-	return RpcRequest{}, false
+	return RPCRequest{}, false
 }
 
-func (r RpcRequests) IsEmpty() bool {
+func (r RPCRequests) IsEmpty() bool {
 	return len(r) == 0
 }
 
-func (r RpcRequests) Methods() []string {
+func (r RPCRequests) Methods() []string {
 	methods := make([]string, len(r))
 	for i := range r {
 		methods[i] = r[i].Method
@@ -42,7 +42,7 @@ func (r RpcRequests) Methods() []string {
 	return methods
 }
 
-func (r RpcResponses) BlankResponses() []int {
+func (r RPCResponses) BlankResponses() []int {
 	var results []int
 	for idx, response := range r {
 		if !response.initialized() {
@@ -52,14 +52,14 @@ func (r RpcResponses) BlankResponses() []int {
 	return results
 }
 
-func (r RpcResponses) Response() (*http.Response, error) {
+func (r RPCResponses) Response() (*http.Response, error) {
 	switch len(r) {
 	case 0:
-		return JsonRPCResponse(200, nil)
+		return JSONRPCResponse(200, nil)
 	case 1:
-		return JsonRPCResponse(200, r[0])
+		return JSONRPCResponse(200, r[0])
 	default:
-		return JsonRPCResponse(200, r)
+		return JSONRPCResponse(200, r)
 	}
 }
 
@@ -69,7 +69,7 @@ type errResponse struct {
 	Error   rpcError    `json:"error"`
 }
 
-type RpcRequest struct {
+type RPCRequest struct {
 	remoteAddr string
 	JSONRPC    string      `json:"jsonrpc"`
 	ID         interface{} `json:"id,omitempty"`
@@ -77,7 +77,7 @@ type RpcRequest struct {
 	Params     interface{} `json:"params,omitempty"`
 }
 
-type RpcResponse struct {
+type RPCResponse struct {
 	JSONRPC string      `json:"jsonrpc"`
 	ID      interface{} `json:"id,omitempty"`
 	Result  interface{} `json:"result,omitempty"`
@@ -90,7 +90,7 @@ type rpcError struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func (r RpcResponse) initialized() bool {
+func (r RPCResponse) initialized() bool {
 	return r.JSONRPC != ""
 }
 
@@ -119,36 +119,34 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func parseRequestBody(body []byte) ([]RpcRequest, error) {
+func parseRequestBody(body []byte) ([]RPCRequest, error) {
 	if isBatch(body) {
-		var arr []RpcRequest
+		var arr []RPCRequest
 		if err := json.Unmarshal(body, &arr); err != nil {
 			return nil, fmt.Errorf("failed to parse JSON batch request: %w", err)
 		}
 		return arr, nil
-	} else {
-		var rpc RpcRequest
-		if err := json.Unmarshal(body, &rpc); err != nil {
-			return nil, fmt.Errorf("failed to parse JSON request: %v", err)
-		}
-		return []RpcRequest{rpc}, nil
 	}
+	var rpc RPCRequest
+	if err := json.Unmarshal(body, &rpc); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON request: %v", err)
+	}
+	return []RPCRequest{rpc}, nil
 }
 
-func parseResponseBody(body []byte) ([]RpcResponse, error) {
+func parseResponseBody(body []byte) ([]RPCResponse, error) {
 	if isBatch(body) {
-		var arr []RpcResponse
+		var arr []RPCResponse
 		if err := json.Unmarshal(body, &arr); err != nil {
 			return nil, fmt.Errorf("failed to parse JSON batch response: %w", err)
 		}
 		return arr, nil
-	} else {
-		var rpc RpcResponse
-		if err := json.Unmarshal(body, &rpc); err != nil {
-			return nil, fmt.Errorf("failed to parse JSON response: %v", err)
-		}
-		return []RpcResponse{rpc}, nil
 	}
+	var rpc RPCResponse
+	if err := json.Unmarshal(body, &rpc); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON response: %v", err)
+	}
+	return []RPCResponse{rpc}, nil
 }
 
 func readBody(r io.ReadCloser) ([]byte, error) {
@@ -168,9 +166,9 @@ func readBody(r io.ReadCloser) ([]byte, error) {
 	return body, nil
 }
 
-func ParseRequests(req *http.Request) (RpcRequests, error) {
+func ParseRequests(req *http.Request) (RPCRequests, error) {
 	var err error
-	var res []RpcRequest
+	var res []RPCRequest
 	body, err := readBody(req.Body)
 	if err != nil {
 		return nil, err
@@ -182,7 +180,7 @@ func ParseRequests(req *http.Request) (RpcRequests, error) {
 		}
 	}
 	if len(res) == 0 {
-		res = append(res, RpcRequest{
+		res = append(res, RPCRequest{
 			Method: req.URL.Path,
 		})
 	}
@@ -192,9 +190,9 @@ func ParseRequests(req *http.Request) (RpcRequests, error) {
 	return res, nil
 }
 
-func ParseResponses(req *http.Response) (RpcResponses, []byte, error) {
+func ParseResponses(req *http.Response) (RPCResponses, []byte, error) {
 	var err error
-	var res RpcResponses
+	var res RPCResponses
 	body, err := readBody(req.Body)
 	if err != nil {
 		return nil, nil, err
@@ -219,7 +217,7 @@ func jsonRPCError(id interface{}, jsonCode int, msg string) interface{} {
 	return resp
 }
 
-func JsonRPCUnauthenticated() interface{} {
+func JSONRPCUnauthenticated() interface{} {
 	return jsonRPCError(
 		nil,
 		jsonRPCInternal,
@@ -227,13 +225,13 @@ func JsonRPCUnauthenticated() interface{} {
 	)
 }
 
-func JsonInvalidResponse(message string) (*http.Response, error) {
-	return JsonRPCResponse(http.StatusBadRequest, jsonRPCError(nil, jsonRPCInvalidParams, message))
+func JSONInvalidResponse(message string) (*http.Response, error) {
+	return JSONRPCResponse(http.StatusBadRequest, jsonRPCError(nil, jsonRPCInvalidParams, message))
 }
 
 // jsonRPCResponse returns a JSON response containing v, or a plaintext generic
 // response for this httpCode and an error when JSON marshalling fails.
-func JsonRPCResponse(httpCode int, v interface{}) (*http.Response, error) {
+func JSONRPCResponse(httpCode int, v interface{}) (*http.Response, error) {
 	body, err := json.Marshal(v)
 	if err != nil {
 		return &http.Response{
@@ -247,16 +245,16 @@ func JsonRPCResponse(httpCode int, v interface{}) (*http.Response, error) {
 	}, nil
 }
 
-func JsonRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
+func JSONRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
 	rpcErr := jsonRPCError(
 		nil,
 		jsonRPCInternal,
 		string(data),
 	)
-	return JsonRPCResponse(httpCode, rpcErr)
+	return JSONRPCResponse(httpCode, rpcErr)
 }
 
-func Request(url, token string, requests RpcRequests) (RpcResponses, []byte, error) {
+func Request(url, token string, requests RPCRequests) (RPCResponses, []byte, error) {
 	jsonBody, err := json.Marshal(requests)
 	if err != nil {
 		return nil, nil, err

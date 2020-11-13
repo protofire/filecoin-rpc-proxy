@@ -42,7 +42,7 @@ func (p cacheParams) match(params interface{}) ([]interface{}, error) {
 	if len(p.paramsInCacheID) != 0 {
 		sliceParams, ok := params.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("cannot parse method parameters %#v with cache Params by ID: %#v", params, p.paramsInCacheID)
+			return nil, fmt.Errorf("cannot parse testMethod parameters %#v with cache Params by ID: %#v", params, p.paramsInCacheID)
 		}
 		for idx := range p.paramsInCacheID {
 			paramsForCache = append(paramsForCache, sliceParams[idx])
@@ -51,7 +51,7 @@ func (p cacheParams) match(params interface{}) ([]interface{}, error) {
 	}
 	mapParams, ok := params.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("cannot parse method parameters %#v with cache Params by Name: %#v", params, p.paramsInCacheName)
+		return nil, fmt.Errorf("cannot parse testMethod parameters %#v with cache Params by Name: %#v", params, p.paramsInCacheName)
 	}
 	for _, key := range p.paramsInCacheName {
 		paramsForCache = append(paramsForCache, mapParams[key])
@@ -81,6 +81,7 @@ func (m match) addCacheMethod(method config.CacheMethod) {
 }
 
 // FromConfig init match from config
+// nolint
 func FromConfig(c *config.Config) *match {
 	matcher := newMatcher()
 	for _, method := range c.CacheMethods {

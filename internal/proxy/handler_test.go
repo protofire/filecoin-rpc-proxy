@@ -25,15 +25,15 @@ func TestMain(t *testing.M) {
 	os.Exit(t.Run())
 }
 
-func TestRpcResponsesUnmarshal(t *testing.T) {
+func TestRPCResponsesUnmarshal(t *testing.T) {
 	data := `{
 		"jsonrpc": "2.0",
-		"method": "test",
+		"testMethod": "test",
 		"id": 5,
 		"params": ["1", 2, null]
 	}
 	`
-	request := requests.RpcRequest{}
+	request := requests.RPCRequest{}
 	err := json.Unmarshal([]byte(data), &request)
 	require.NoError(t, err)
 	params := request.Params.([]interface{})
@@ -41,12 +41,12 @@ func TestRpcResponsesUnmarshal(t *testing.T) {
 
 	data = `{
 		"jsonrpc": "2.0",
-		"method": "test",
+		"testMethod": "test",
 		"id": 5,
 		"params": ["1", "2"]
 	}
 	`
-	request = requests.RpcRequest{}
+	request = requests.RPCRequest{}
 	err = json.Unmarshal([]byte(data), &request)
 	require.NoError(t, err)
 	params = request.Params.([]interface{})
@@ -54,12 +54,12 @@ func TestRpcResponsesUnmarshal(t *testing.T) {
 
 	data = `{
 		"jsonrpc": "2.0",
-		"method": "test",
+		"testMethod": "test",
 		"id": 5,
 		"params": {"a": "1", "b": "2"}
 	}
 	`
-	request = requests.RpcRequest{}
+	request = requests.RPCRequest{}
 	err = json.Unmarshal([]byte(data), &request)
 	require.NoError(t, err)
 	paramsMap := request.Params.(map[string]interface{})
@@ -72,16 +72,16 @@ func TestTransportWithCache(t *testing.T) {
 	requestID := "1"
 	result := float64(15)
 
-	response := requests.RpcResponse{
+	response := requests.RPCResponse{
 		JSONRPC: "2.0",
 		ID:      requestID,
 		Result:  result,
 		Error:   nil,
 	}
 
-	responseJson, err := json.Marshal(response)
+	responseJSON, err := json.Marshal(response)
 	require.NoError(t, err)
-	request := requests.RpcRequest{
+	request := requests.RPCRequest{
 		JSONRPC: "2.0",
 		ID:      requestID,
 		Method:  method,
@@ -94,7 +94,7 @@ func TestTransportWithCache(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err := fmt.Fprint(w, string(responseJson))
+		_, err := fmt.Fprint(w, string(responseJSON))
 		if err != nil {
 			logger.Log.Error(err)
 		}
@@ -138,36 +138,36 @@ func TestTransportBulkRequest(t *testing.T) {
 	result1 := float64(15)
 	result2 := float64(16)
 
-	response1 := requests.RpcResponse{
+	response1 := requests.RPCResponse{
 		JSONRPC: "2.0",
 		ID:      requestID1,
 		Result:  result1,
 		Error:   nil,
 	}
-	response2 := requests.RpcResponse{
+	response2 := requests.RPCResponse{
 		JSONRPC: "2.0",
 		ID:      requestID2,
 		Result:  result2,
 		Error:   nil,
 	}
 
-	responseJson, err := json.Marshal(response2)
+	responseJSON, err := json.Marshal(response2)
 	require.NoError(t, err)
 
-	request1 := requests.RpcRequest{
+	request1 := requests.RPCRequest{
 		JSONRPC: "2.0",
 		ID:      requestID1,
 		Method:  method,
 		Params:  []interface{}{"1", "2"},
 	}
-	request2 := requests.RpcRequest{
+	request2 := requests.RPCRequest{
 		JSONRPC: "2.0",
 		ID:      requestID2,
 		Method:  method,
 		Params:  []interface{}{"2", "3"},
 	}
 
-	jsonRequest, err := json.Marshal([]requests.RpcRequest{request1, request2})
+	jsonRequest, err := json.Marshal([]requests.RPCRequest{request1, request2})
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +178,7 @@ func TestTransportBulkRequest(t *testing.T) {
 		require.Len(t, reqs, 1)
 		request := reqs[0]
 		require.Equal(t, request.ID, requestID2)
-		_, err = fmt.Fprint(w, string(responseJson))
+		_, err = fmt.Fprint(w, string(responseJSON))
 		if err != nil {
 			logger.Log.Error(err)
 		}
@@ -218,18 +218,18 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 
 	methods := []string{"test1", "test2", "test3", "test4", "test5"}
 
-	var resps requests.RpcResponses
-	var reqs requests.RpcRequests
+	var resps requests.RPCResponses
+	var reqs requests.RPCRequests
 
 	for idx, method := range methods {
 		id := strconv.Itoa(idx + 1)
-		reqs = append(reqs, requests.RpcRequest{
+		reqs = append(reqs, requests.RPCRequest{
 			JSONRPC: "2.0",
 			ID:      id,
 			Method:  method,
 			Params:  []string{"1"},
 		})
-		resps = append(resps, requests.RpcResponse{
+		resps = append(resps, requests.RPCResponse{
 			JSONRPC: "2.0",
 			ID:      id,
 			Result:  id,
@@ -244,7 +244,7 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 	}
 	require.Equal(t, strconv.Itoa(len(methods)), resps[0].ID)
 
-	responsesJson, err := json.Marshal(resps)
+	responsesJSON, err := json.Marshal(resps)
 	require.NoError(t, err)
 
 	jsonRequest, err := json.Marshal(reqs)
@@ -253,7 +253,7 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = fmt.Fprint(w, string(responsesJson))
+		_, err = fmt.Fprint(w, string(responsesJSON))
 		if err != nil {
 			logger.Log.Error(err)
 		}

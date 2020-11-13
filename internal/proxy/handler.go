@@ -25,6 +25,7 @@ type transport struct {
 	matcher matcher.Matcher
 }
 
+// nolint
 func NewTransport(cache cache.Cache, matcher matcher.Matcher, logger *logrus.Entry) *transport {
 	return &transport{
 		logger:  logger,
@@ -33,7 +34,7 @@ func NewTransport(cache cache.Cache, matcher matcher.Matcher, logger *logrus.Ent
 	}
 }
 
-func (t *transport) setResponseCache(req requests.RpcRequest, resp requests.RpcResponse) error {
+func (t *transport) setResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
 	key := t.matcher.Key(req.Method, req.Params)
 	if key == "" {
 		return nil
@@ -41,8 +42,8 @@ func (t *transport) setResponseCache(req requests.RpcRequest, resp requests.RpcR
 	return t.cache.Set(key, resp)
 }
 
-func (t *transport) getResponseCache(req requests.RpcRequest) (requests.RpcResponse, error) {
-	resp := requests.RpcResponse{}
+func (t *transport) getResponseCache(req requests.RPCRequest) (requests.RPCResponse, error) {
+	resp := requests.RPCResponse{}
 	key := t.matcher.Key(req.Method, req.Params)
 	if key == "" {
 		return resp, nil
@@ -54,7 +55,7 @@ func (t *transport) getResponseCache(req requests.RpcRequest) (requests.RpcRespo
 	if data == nil {
 		return resp, nil
 	}
-	resp, ok := data.(requests.RpcResponse)
+	resp, ok := data.(requests.RPCResponse)
 	if ok {
 		return resp, nil
 	}
@@ -74,7 +75,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		log.Errorf("Failed to parse requests: %v", err)
 		metrics.SetRequestsErrorCounter()
-		resp, err := requests.JsonInvalidResponse(err.Error())
+		resp, err := requests.JSONInvalidResponse(err.Error())
 		if err != nil {
 			log.Errorf("Failed to prepare error response: %v", err)
 			return nil, err
@@ -86,12 +87,12 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	preparedResponses, err := t.fromCache(parsedRequests)
 	if err != nil {
 		log.Errorf("Cannot build prepared responses: %v", err)
-		preparedResponses = make(requests.RpcResponses, len(parsedRequests))
+		preparedResponses = make(requests.RPCResponses, len(parsedRequests))
 	}
 
 	proxyRequestIdx := preparedResponses.BlankResponses()
 	// build requests to proxy
-	var proxyRequests requests.RpcRequests
+	var proxyRequests requests.RPCRequests
 	for _, idx := range proxyRequestIdx {
 		proxyRequests = append(proxyRequests, parsedRequests[idx])
 	}
@@ -125,7 +126,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	responses, body, err := requests.ParseResponses(res)
 	if err != nil {
 		metrics.SetRequestsErrorCounter()
-		return requests.JsonRPCErrorResponse(res.StatusCode, body)
+		return requests.JSONRPCErrorResponse(res.StatusCode, body)
 	}
 
 	for idx, response := range responses {
@@ -153,14 +154,14 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // fromCache checks presence of messages in the cache
-func (t *transport) fromCache(reqs requests.RpcRequests) (requests.RpcResponses, error) {
-	results := make(requests.RpcResponses, len(reqs))
+func (t *transport) fromCache(reqs requests.RPCRequests) (requests.RPCResponses, error) {
+	results := make(requests.RPCResponses, len(reqs))
 	for idx, request := range reqs {
 		response, err := t.getResponseCache(request)
 		if err != nil {
 			cacheErr := &cache.Error{}
 			if errors.As(err, cacheErr) {
-				t.logger.Errorf("Cannot get cache value for method %q: %v", request.Method, cacheErr)
+				t.logger.Errorf("Cannot get cache value for testMethod %q: %v", request.Method, cacheErr)
 			} else {
 				return results, err
 			}

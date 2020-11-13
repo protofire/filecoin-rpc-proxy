@@ -86,7 +86,7 @@ func (u *Updater) StopWithTimeout(ctx context.Context) bool {
 	}
 }
 
-func (u *Updater) setResponseCache(req requests.RpcRequest, resp requests.RpcResponse) error {
+func (u *Updater) setResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
 	key := u.matcher.Key(req.Method, req.Params)
 	if key == "" {
 		return nil
@@ -95,10 +95,10 @@ func (u *Updater) setResponseCache(req requests.RpcRequest, resp requests.RpcRes
 }
 
 func (u *Updater) update() error {
-	reqs := requests.RpcRequests{}
+	reqs := requests.RPCRequests{}
 	counter := 1
 	for _, method := range u.matcher.Methods() {
-		reqs = append(reqs, requests.RpcRequest{
+		reqs = append(reqs, requests.RPCRequest{
 			JSONRPC: "2.0",
 			ID:      counter,
 			Method:  method.Name,
