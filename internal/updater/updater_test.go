@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
@@ -32,7 +34,7 @@ func TestMain(t *testing.M) {
 func TestUpdater(t *testing.T) {
 
 	method := "test"
-	requestID := float64(1)
+	requestID := 1
 	result := float64(15)
 
 	response := requests.RPCResponse{
@@ -76,17 +78,20 @@ func TestUpdater(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go updaterImp.Start(ctx, 1)
-	time.Sleep(2 * time.Second)
 	cancel()
 
+	ctxStop, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	updaterImp.StopWithTimeout(ctxStop)
+	defer cancel()
+
 	lock.Lock()
-	require.Greater(t, requestsCount, 1)
+	require.GreaterOrEqual(t, requestsCount, 1)
 	lock.Unlock()
 
 	reqs := updaterImp.requests()
 	cachedResp, err := updaterImp.cacher.GetResponseCache(reqs[0])
 	require.NoError(t, err)
 	require.False(t, cachedResp.IsEmpty())
-	require.Equal(t, cachedResp, response)
+	require.True(t, utils.Equal(cachedResp.ID, response.ID))
 
 }

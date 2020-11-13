@@ -17,3 +17,30 @@ func GetUserHome() (string, error) {
 	}
 	return usr.HomeDir, nil
 }
+
+func Equal(i interface{}, j interface{}) bool {
+
+	convert := func(i interface{}) interface{} {
+		switch i := i.(type) {
+		case float64:
+			return int(i)
+		case float32:
+			return int(i)
+		case int:
+			return i
+		case int8:
+			return int(i)
+		case int16:
+			return int(i)
+		case int32:
+			return int(i)
+		case int64:
+			return int(i)
+		case byte:
+			return int(i)
+		}
+		return i
+	}
+
+	return convert(i) == convert(j)
+}

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
 )
 
@@ -23,7 +25,7 @@ type RPCRequests []RPCRequest
 
 func (r RPCRequests) FindByID(id interface{}) (RPCRequest, bool) {
 	for _, req := range r {
-		if req.ID == id {
+		if utils.Equal(req.ID, id) {
 			return req, true
 		}
 	}
