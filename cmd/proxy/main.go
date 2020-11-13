@@ -30,7 +30,15 @@ import (
 var defaultConfigFileName = "proxy.yaml"
 
 func getDefaultConfigFilePath() string {
-	home, _ := utils.GetUserHome()
+	home, err := utils.GetUserHome()
+	if err != nil {
+		fmt.Println(err)
+		home, err = os.Getwd()
+		if err != nil {
+			fmt.Println(err)
+			home = "/"
+		}
+	}
 	return path.Join(home, defaultConfigFileName)
 }
 
