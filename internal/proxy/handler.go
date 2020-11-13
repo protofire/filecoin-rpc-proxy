@@ -98,13 +98,11 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	for idx, response := range responses {
 		if response.Error == nil {
-			request, ok := parsedRequests.FindByID(response.ID)
-			if !ok {
-				request = parsedRequests[proxyRequestIdx[idx]]
-			}
-			err := t.cacher.SetResponseCache(request, response)
-			if err != nil {
-				t.logger.Errorf("Cannot set cached response: %v", err)
+			if request, ok := parsedRequests.FindByID(response.ID); ok {
+				err := t.cacher.SetResponseCache(request, response)
+				if err != nil {
+					t.logger.Errorf("Cannot set cached response: %v", err)
+				}
 			}
 		}
 		preparedResponses[proxyRequestIdx[idx]] = response
