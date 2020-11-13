@@ -27,16 +27,17 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var defaultConfigFile = "proxy.yaml"
+var defaultConfigFileName = "proxy.yaml"
+
+func getDefaultConfigFilePath() string {
+	home, _ := utils.GetUserHome()
+	return path.Join(home, defaultConfigFileName)
+}
 
 func startCommand(c *cli.Context) error {
-	configFile := c.String("conf")
+	configFile := c.String("config")
 	if configFile == "" {
-		home, err := utils.GetUserHome()
-		if err != nil {
-			return err
-		}
-		configFile = path.Join(home, defaultConfigFile)
+		configFile = getDefaultConfigFilePath()
 	}
 	if !utils.FileExists(configFile) {
 		return fmt.Errorf("cannot find conf file file: %s", configFile)
@@ -149,7 +150,7 @@ func prepareCliApp() *cli.App {
 			Name:     "config",
 			Aliases:  []string{"c"},
 			EnvVars:  []string{"RPC_PROXY_CONFIG_FILE"},
-			Value:    "",
+			Value:    getDefaultConfigFilePath(),
 			Required: false,
 			Usage:    "Config file. yaml format",
 		},
