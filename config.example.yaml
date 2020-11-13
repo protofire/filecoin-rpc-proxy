@@ -1,0 +1,17 @@
+proxy_url: http://test.com
+jwt_secret: secret
+jwt_alg: HS256
+port: 8080
+host: 0.0.0.0
+period: 300
+log_level: INFO
+cache_methods:
+  - name: method
+    cache_by_params: true
+    params_for_request:
+      - one
+      - two
+      - three
+    params_in_cache_by_id:
+      - 0
+      - 1
