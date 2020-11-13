@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/auth"
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 
@@ -13,39 +15,33 @@ import (
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
 )
 
 type Updater struct {
-	cache   cache.Cache
-	matcher matcher.Matcher
+	cacher  proxy.ResponseCacher
 	logger  *logrus.Entry
 	url     string
 	token   string
 	stopped int32
 }
 
-func New(cache cache.Cache, matcher matcher.Matcher, logger *logrus.Entry, url, token string) *Updater {
+func New(cacher proxy.ResponseCacher, logger *logrus.Entry, url, token string) *Updater {
 	u := &Updater{
-		cache:   cache,
-		matcher: matcher,
-		logger:  logger,
-		url:     url,
-		token:   token,
+		cacher: cacher,
+		logger: logger,
+		url:    url,
+		token:  token,
 	}
 	return u
 }
 
-func FromConfig(conf *config.Config, cache cache.Cache, matcher matcher.Matcher, logger *logrus.Entry) (*Updater, error) {
+func FromConfig(conf *config.Config, cacher proxy.ResponseCacher, logger *logrus.Entry) (*Updater, error) {
 	token, err := auth.NewJWT(conf.JWTSecret, conf.JWTAlgorithm, []string{"admin"})
 	if err != nil {
 		return nil, err
 	}
 	logger.Infof("Proxy token: %s", string(token))
-	return New(cache, matcher, logger, conf.ProxyURL, string(token)), nil
+	return New(cacher, logger, conf.ProxyURL, string(token)), nil
 }
 
 func (u *Updater) Start(ctx context.Context, period int) {
@@ -86,18 +82,10 @@ func (u *Updater) StopWithTimeout(ctx context.Context) bool {
 	}
 }
 
-func (u *Updater) setResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
-	key := u.matcher.Key(req.Method, req.Params)
-	if key == "" {
-		return nil
-	}
-	return u.cache.Set(key, resp)
-}
-
-func (u *Updater) update() error {
+func (u *Updater) requests() requests.RPCRequests {
 	reqs := requests.RPCRequests{}
-	counter := 1
-	for _, method := range u.matcher.Methods() {
+	counter := float64(1)
+	for _, method := range u.cacher.Matcher().Methods() {
 		reqs = append(reqs, requests.RPCRequest{
 			JSONRPC: "2.0",
 			ID:      counter,
@@ -106,6 +94,11 @@ func (u *Updater) update() error {
 		})
 		counter++
 	}
+	return reqs
+}
+
+func (u *Updater) update() error {
+	reqs := u.requests()
 	if reqs.IsEmpty() {
 		return nil
 	}
@@ -119,7 +112,7 @@ func (u *Updater) update() error {
 	for _, resp := range responses {
 		req, ok := reqs.FindByID(resp.ID)
 		if ok {
-			err := u.setResponseCache(req, resp)
+			err := u.cacher.SetResponseCache(req, resp)
 			if err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}

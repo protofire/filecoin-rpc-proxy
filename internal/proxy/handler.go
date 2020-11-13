@@ -10,8 +10,6 @@ import (
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
 
-	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
-
 	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
 	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
 	"github.com/sirupsen/logrus"
@@ -20,47 +18,16 @@ import (
 )
 
 type transport struct {
-	logger  *logrus.Entry
-	cache   cache.Cache
-	matcher matcher.Matcher
+	logger *logrus.Entry
+	cacher ResponseCacher
 }
 
 // nolint
-func NewTransport(cache cache.Cache, matcher matcher.Matcher, logger *logrus.Entry) *transport {
+func NewTransport(cacher ResponseCacher, logger *logrus.Entry) *transport {
 	return &transport{
-		logger:  logger,
-		cache:   cache,
-		matcher: matcher,
+		logger: logger,
+		cacher: cacher,
 	}
-}
-
-func (t *transport) setResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
-	key := t.matcher.Key(req.Method, req.Params)
-	if key == "" {
-		return nil
-	}
-	return t.cache.Set(key, resp)
-}
-
-func (t *transport) getResponseCache(req requests.RPCRequest) (requests.RPCResponse, error) {
-	resp := requests.RPCResponse{}
-	key := t.matcher.Key(req.Method, req.Params)
-	if key == "" {
-		return resp, nil
-	}
-	data, err := t.cache.Get(key)
-	if err != nil {
-		return resp, err
-	}
-	if data == nil {
-		return resp, nil
-	}
-	resp, ok := data.(requests.RPCResponse)
-	if ok {
-		return resp, nil
-	}
-	err = json.Unmarshal(data.([]byte), &resp)
-	return resp, err
 }
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -135,7 +102,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			if !ok {
 				request = parsedRequests[proxyRequestIdx[idx]]
 			}
-			err := t.setResponseCache(request, response)
+			err := t.cacher.SetResponseCache(request, response)
 			if err != nil {
 				t.logger.Errorf("Cannot set cached response: %v", err)
 			}
@@ -157,7 +124,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 func (t *transport) fromCache(reqs requests.RPCRequests) (requests.RPCResponses, error) {
 	results := make(requests.RPCResponses, len(reqs))
 	for idx, request := range reqs {
-		response, err := t.getResponseCache(request)
+		response, err := t.cacher.GetResponseCache(request)
 		if err != nil {
 			cacheErr := &cache.Error{}
 			if errors.As(err, cacheErr) {

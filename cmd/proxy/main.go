@@ -50,11 +50,13 @@ func startCommand(c *cli.Context) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	cacheImp := cache.NewMemoryCacheFromConfig(conf)
-	matcherImp := matcher.FromConfig(conf)
-	transportImp := proxy.NewTransport(cacheImp, matcherImp, log)
+	cacher := proxy.NewResponseCache(
+		cache.NewMemoryCacheFromConfig(conf),
+		matcher.FromConfig(conf),
+	)
+	transportImp := proxy.NewTransport(cacher, log)
 
-	updaterImp, err := updater.FromConfig(conf, cacheImp, matcherImp, log)
+	updaterImp, err := updater.FromConfig(conf, cacher, log)
 	if err != nil {
 		return err
 	}

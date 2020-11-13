@@ -45,7 +45,7 @@ func (r RPCRequests) Methods() []string {
 func (r RPCResponses) BlankResponses() []int {
 	var results []int
 	for idx, response := range r {
-		if !response.initialized() {
+		if response.IsEmpty() {
 			results = append(results, idx)
 		}
 	}
@@ -90,8 +90,8 @@ type rpcError struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func (r RPCResponse) initialized() bool {
-	return r.JSONRPC != ""
+func (r RPCResponse) IsEmpty() bool {
+	return r.JSONRPC == ""
 }
 
 func isBatch(msg []byte) bool {

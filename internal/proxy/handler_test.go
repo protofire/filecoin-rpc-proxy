@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const method = "test"
+
 func TestMain(t *testing.M) {
 	logger.InitDefaultLogger()
 	os.Exit(t.Run())
@@ -28,7 +30,7 @@ func TestMain(t *testing.M) {
 func TestRPCResponsesUnmarshal(t *testing.T) {
 	data := `{
 		"jsonrpc": "2.0",
-		"testMethod": "test",
+		"method": "test",
 		"id": 5,
 		"params": ["1", 2, null]
 	}
@@ -41,7 +43,7 @@ func TestRPCResponsesUnmarshal(t *testing.T) {
 
 	data = `{
 		"jsonrpc": "2.0",
-		"testMethod": "test",
+		"method": "test",
 		"id": 5,
 		"params": ["1", "2"]
 	}
@@ -68,7 +70,6 @@ func TestRPCResponsesUnmarshal(t *testing.T) {
 
 func TestTransportWithCache(t *testing.T) {
 
-	method := "test"
 	requestID := "1"
 	result := float64(15)
 
@@ -123,7 +124,7 @@ func TestTransportWithCache(t *testing.T) {
 	require.Equal(t, responses[0].Result, result)
 	require.Equal(t, responses[0].ID, requestID)
 
-	cache, err := server.transport.getResponseCache(request)
+	cache, err := server.transport.cacher.GetResponseCache(request)
 	require.NoError(t, err)
 	require.Equal(t, cache.Result, result)
 	require.Equal(t, cache.ID, requestID)
@@ -132,7 +133,6 @@ func TestTransportWithCache(t *testing.T) {
 
 func TestTransportBulkRequest(t *testing.T) {
 
-	method := "test"
 	requestID1 := "10"
 	requestID2 := "20"
 	result1 := float64(15)
@@ -190,7 +190,7 @@ func TestTransportBulkRequest(t *testing.T) {
 	server, err := FromConfig(conf)
 	require.NoError(t, err)
 
-	err = server.transport.setResponseCache(request1, response1)
+	err = server.transport.cacher.SetResponseCache(request1, response1)
 	require.NoError(t, err)
 
 	frontend := httptest.NewServer(http.HandlerFunc(server.RPCProxy))
@@ -280,7 +280,7 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 	require.Len(t, responses, len(methods))
 
 	for _, req := range reqs {
-		resp, err := server.transport.getResponseCache(req)
+		resp, err := server.transport.cacher.GetResponseCache(req)
 		require.NoError(t, err)
 		require.Equal(t, resp.ID, req.ID)
 	}

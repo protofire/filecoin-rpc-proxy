@@ -1,4 +1,4 @@
-package updater
+package proxy
 
 import (
 	"encoding/json"
@@ -13,7 +13,6 @@ import (
 	"github.com/protofire/filecoin-rpc-proxy/internal/testhelpers"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
-	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,10 +50,10 @@ func TestRequest(t *testing.T) {
 
 	conf, err := testhelpers.GetConfig(backend.URL, method)
 	require.NoError(t, err)
-	server, err := proxy.FromConfig(conf)
+	server, err := FromConfig(conf)
 	require.NoError(t, err)
 
-	handler := proxy.PrepareRoutes(conf, logger.Log, server)
+	handler := PrepareRoutes(conf, logger.Log, server)
 	frontend := httptest.NewServer(handler)
 	defer frontend.Close()
 

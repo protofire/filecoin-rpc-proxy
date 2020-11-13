@@ -31,11 +31,11 @@ func FromConfig(c *config.Config) (*Server, error) {
 		return nil, err
 	}
 	log := logger.InitLogger(c.LogLevel, c.LogPrettyPrint)
-	transport := NewTransport(
+	cacher := NewResponseCache(
 		cache.NewMemoryCacheFromConfig(c),
 		matcher.FromConfig(c),
-		log,
 	)
+	transport := NewTransport(cacher, log)
 	return newServer(proxyURL, c.Host, c.Port, log, transport)
 }
 
