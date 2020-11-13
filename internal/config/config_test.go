@@ -62,7 +62,7 @@ cache_methods:
 )
 
 func TestNewConfigCacheParamsByID(t *testing.T) {
-	config, err := NewConfig(strings.NewReader(configParamsByID))
+	config, err := New(strings.NewReader(configParamsByID))
 	require.NoError(t, err)
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
@@ -73,7 +73,7 @@ func TestNewConfigCacheParamsByID(t *testing.T) {
 }
 
 func TestNewConfigCacheParamsByName(t *testing.T) {
-	config, err := NewConfig(strings.NewReader(configParamsByName))
+	config, err := New(strings.NewReader(configParamsByName))
 	require.NoError(t, err)
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
@@ -82,6 +82,6 @@ func TestNewConfigCacheParamsByName(t *testing.T) {
 }
 
 func TestNewConfigCacheParamsByIDAndName(t *testing.T) {
-	_, err := NewConfig(strings.NewReader(configParamsByIDAndName))
+	_, err := New(strings.NewReader(configParamsByIDAndName))
 	require.Error(t, err)
 }

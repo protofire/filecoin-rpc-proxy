@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/testhelpers"
@@ -132,8 +133,8 @@ func TestTransportWithCache(t *testing.T) {
 func TestTransportBulkRequest(t *testing.T) {
 
 	method := "test"
-	requestID1 := "1"
-	requestID2 := "2"
+	requestID1 := "10"
+	requestID2 := "20"
 	result1 := float64(15)
 	result2 := float64(16)
 
@@ -206,9 +207,82 @@ func TestTransportBulkRequest(t *testing.T) {
 	responses, _, err := requests.ParseResponses(resp)
 	require.NoError(t, err)
 	require.Len(t, responses, 2)
-	require.Equal(t, responses[0].Result, result1)
 	require.Equal(t, responses[0].ID, requestID1)
-	require.Equal(t, responses[1].Result, result2)
 	require.Equal(t, responses[1].ID, requestID2)
+	require.Equal(t, responses[0].Result, result1)
+	require.Equal(t, responses[1].Result, result2)
+
+}
+
+func TestTransportBulkRequestReverseResponses(t *testing.T) {
+
+	methods := []string{"test1", "test2", "test3", "test4", "test5"}
+
+	var resps requests.RpcResponses
+	var reqs requests.RpcRequests
+
+	for idx, method := range methods {
+		id := strconv.Itoa(idx + 1)
+		reqs = append(reqs, requests.RpcRequest{
+			JSONRPC: "2.0",
+			ID:      id,
+			Method:  method,
+			Params:  []string{"1"},
+		})
+		resps = append(resps, requests.RpcResponse{
+			JSONRPC: "2.0",
+			ID:      id,
+			Result:  id,
+			Error:   nil,
+		})
+	}
+
+	for left, right := 0, len(resps)-1; left < right; {
+		resps[left], resps[right] = resps[right], resps[left]
+		left++
+		right--
+	}
+	require.Equal(t, strconv.Itoa(len(methods)), resps[0].ID)
+
+	responsesJson, err := json.Marshal(resps)
+	require.NoError(t, err)
+
+	jsonRequest, err := json.Marshal(reqs)
+	require.NoError(t, err)
+
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err = fmt.Fprint(w, string(responsesJson))
+		if err != nil {
+			logger.Log.Error(err)
+		}
+	}))
+	defer backend.Close()
+
+	conf, err := testhelpers.GetConfig(backend.URL, methods...)
+	require.NoError(t, err)
+	server, err := FromConfig(conf)
+	require.NoError(t, err)
+
+	frontend := httptest.NewServer(http.HandlerFunc(server.RPCProxy))
+	defer frontend.Close()
+
+	resp, err := http.Post(
+		frontend.URL,
+		"application/json",
+		ioutil.NopCloser(bytes.NewBuffer(jsonRequest)),
+	)
+	require.NoError(t, err)
+
+	responses, _, err := requests.ParseResponses(resp)
+	require.NoError(t, err)
+	require.Len(t, responses, len(methods))
+
+	for _, req := range reqs {
+		resp, err := server.transport.getResponseCache(req)
+		require.NoError(t, err)
+		require.Equal(t, resp.ID, req.ID)
+	}
 
 }

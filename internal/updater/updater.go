@@ -44,6 +44,7 @@ func FromConfig(conf *config.Config, cache cache.Cache, matcher matcher.Matcher,
 	if err != nil {
 		return nil, err
 	}
+	logger.Infof("Proxy token: %s", string(token))
 	return New(cache, matcher, logger, conf.ProxyURL, string(token)), nil
 }
 
@@ -54,6 +55,10 @@ func (u *Updater) Start(ctx context.Context, period int) {
 	}()
 
 	ticker := time.NewTicker(time.Second * time.Duration(period))
+
+	if err := u.update(); err != nil {
+		u.logger.Errorf("cannot update cached requests: %v", err)
+	}
 
 	for {
 		select {

@@ -41,7 +41,7 @@ func startCommand(c *cli.Context) error {
 	if !utils.FileExists(configFile) {
 		return fmt.Errorf("cannot find conf file file: %s", configFile)
 	}
-	conf, err := config.NewConfigFromFile(configFile)
+	conf, err := config.FromFile(configFile)
 	if err != nil {
 		return err
 	}

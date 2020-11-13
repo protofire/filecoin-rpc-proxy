@@ -46,16 +46,16 @@ type Config struct {
 	LogPrettyPrint bool          `yaml:"log_pretty_print"`
 }
 
-func NewConfig(reader io.Reader) (*Config, error) {
+func New(reader io.Reader) (*Config, error) {
 	c := &Config{}
 	if err := yaml.NewDecoder(reader).Decode(c); err != nil {
 		return nil, err
 	}
-	c.init()
-	return c, c.validate()
+	c.Init()
+	return c, c.Validate()
 }
 
-func (c *Config) init() {
+func (c *Config) Init() {
 	if c.CacheSettings.CleanupInterval == 0 {
 		c.CacheSettings.CleanupInterval = DefaultCacheCleanupInterval
 	}
@@ -79,7 +79,7 @@ func (c *Config) init() {
 	}
 }
 
-func (c *Config) validate() error {
+func (c *Config) Validate() error {
 	for _, params := range c.CacheMethods {
 		if len(params.ParamsInCacheByID) > 0 && len(params.ParamsInCacheByName) > 0 {
 			return fmt.Errorf("either cache params by ID or cache params by name are supported")
@@ -94,10 +94,10 @@ func (c *Config) validate() error {
 	return nil
 }
 
-func NewConfigFromFile(filename string) (*Config, error) {
+func FromFile(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	return NewConfig(file)
+	return New(file)
 }
