@@ -18,9 +18,14 @@ func (e Error) Error() string {
 	return e.message
 }
 
+type Value struct {
+	Request  interface{}
+	Response interface{}
+}
+
 // Cache ...
 type Cache interface {
-	Set(key string, value interface{}) error
+	Set(key string, request, response interface{}) error
 	Get(key string) (interface{}, error)
 }
 
@@ -30,17 +35,20 @@ type MemoryCache struct {
 }
 
 // Set ...
-func (m *MemoryCache) Set(key string, value interface{}) error {
-	m.Cache.Set(key, value, 0)
+func (m *MemoryCache) Set(key string, request, response interface{}) error {
+	m.Cache.Set(key, Value{
+		Request:  request,
+		Response: response,
+	}, 0)
 	metrics.SetCacheSize(int64(m.Cache.ItemCount()))
 	return nil
 }
 
 // Get ...
 func (m *MemoryCache) Get(key string) (interface{}, error) {
-	value, ok := m.Cache.Get(key)
+	val, ok := m.Cache.Get(key)
 	if ok {
-		return value, nil
+		return val.(Value).Response, nil
 	}
 	return nil, nil
 }

@@ -3,6 +3,8 @@ package proxy
 import (
 	"encoding/json"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
 	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
@@ -27,32 +29,48 @@ type ResponseCacher interface {
 }
 
 func (rc *ResponseCache) SetResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
-	key := rc.matcher.Key(req.Method, req.Params)
-	if key == "" {
+	keys := rc.matcher.Keys(req.Method, req.Params)
+	if len(keys) == 0 {
 		return nil
 	}
-	return rc.cache.Set(key, resp)
+	mErr := &multierror.Error{}
+	for _, key := range keys {
+		mErr = multierror.Append(mErr, rc.cache.Set(key.Key, req, resp))
+	}
+	return mErr.ErrorOrNil()
 }
 
 func (rc *ResponseCache) GetResponseCache(req requests.RPCRequest) (requests.RPCResponse, error) {
 	resp := requests.RPCResponse{}
-	key := rc.matcher.Key(req.Method, req.Params)
-	if key == "" {
+	keys := rc.matcher.Keys(req.Method, req.Params)
+	if len(keys) == 0 {
 		return resp, nil
 	}
-	data, err := rc.cache.Get(key)
-	if err != nil {
-		return resp, err
+	mErr := &multierror.Error{}
+	for _, key := range keys {
+		data, err := rc.cache.Get(key.Key)
+		if err != nil {
+			mErr = multierror.Append(mErr, err)
+			continue
+		}
+		if data == nil {
+			continue
+		}
+		resp, ok := data.(requests.RPCResponse)
+		if ok {
+			return resp, nil
+		}
+		dataBytes, ok := data.([]byte)
+		if !ok {
+			continue
+		}
+		err = json.Unmarshal(dataBytes, &resp)
+		if err != nil {
+			continue
+		}
+		break
 	}
-	if data == nil {
-		return resp, nil
-	}
-	resp, ok := data.(requests.RPCResponse)
-	if ok {
-		return resp, nil
-	}
-	err = json.Unmarshal(data.([]byte), &resp)
-	return resp, err
+	return resp, nil
 }
 
 func (rc *ResponseCache) Matcher() matcher.Matcher {

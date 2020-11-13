@@ -50,7 +50,7 @@ func TestUpdater(t *testing.T) {
 	lock := sync.Mutex{}
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
+		w.Header().Add("Content-Kind", "application/json")
 		w.WriteHeader(http.StatusOK)
 		lock.Lock()
 		requestsCount++
@@ -62,7 +62,7 @@ func TestUpdater(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	conf, err := testhelpers.GetConfig(backend.URL, method)
+	conf, err := testhelpers.GetConfigWithCustomMethods(backend.URL, method)
 	require.NoError(t, err)
 
 	var params interface{} = []interface{}{"1", "2"}
@@ -89,6 +89,7 @@ func TestUpdater(t *testing.T) {
 	lock.Unlock()
 
 	reqs := updaterImp.requests()
+	require.NotEqual(t, 0, len(reqs))
 	cachedResp, err := updaterImp.cacher.GetResponseCache(reqs[0])
 	require.NoError(t, err)
 	require.False(t, cachedResp.IsEmpty())

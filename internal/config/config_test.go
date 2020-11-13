@@ -20,6 +20,7 @@ proxy_url: %s
 jwt_secret: %s
 cache_methods:
 - name: %s
+  kind: custom	
   cache_by_params: true
   params_for_request:
     - one
@@ -33,6 +34,7 @@ proxy_url: %s
 jwt_secret: %s
 cache_methods:
 - name: %s
+  kind: custom	
   cache_by_params: true
   params_for_request:
     - 1
@@ -56,29 +58,49 @@ cache_methods:
   params_in_cache_by_name:
     - %s
 `, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
+	configParamsByIDAndNameRegular = fmt.Sprintf(`
+proxy_url: %s
+jwt_secret: %s
+cache_methods:
+- name: %s
+  cache_by_params: true
+  params_in_cache_by_id:
+    - %s
+  params_in_cache_by_name:
+    - %s
+`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
 
 func TestNewConfigCacheParamsByID(t *testing.T) {
 	config, err := New(strings.NewReader(configParamsByID))
-	require.NoError(t, err)
+	require.NoError(t, err, err)
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
 	require.Equal(t, config.CacheMethods[0].Name, methodName)
 	require.Equal(t, config.CacheMethods[0].ParamsInCacheByID[0], paramInCacheID)
 	require.Equal(t, config.CacheSettings.DefaultExpiration, 0)
 	require.Equal(t, config.CacheSettings.CleanupInterval, -1)
+	require.True(t, config.CacheMethods[0].Kind.IsCustom())
 }
 
 func TestNewConfigCacheParamsByName(t *testing.T) {
 	config, err := New(strings.NewReader(configParamsByName))
-	require.NoError(t, err)
+	require.NoError(t, err, err)
 	require.Equal(t, config.ProxyURL, proxyURL)
 	require.True(t, config.CacheMethods[0].CacheByParams)
 	require.Equal(t, config.CacheMethods[0].Name, methodName)
 	require.Equal(t, config.CacheMethods[0].ParamsInCacheByName[0], paramInCacheName)
+	require.True(t, config.CacheMethods[0].Kind.IsCustom())
 }
 
 func TestNewConfigCacheParamsByIDAndName(t *testing.T) {
-	_, err := New(strings.NewReader(configParamsByIDAndName))
-	require.Error(t, err)
+	config, err := New(strings.NewReader(configParamsByIDAndName))
+	require.NoError(t, err, err)
+	require.True(t, config.CacheMethods[0].Kind.IsCustom())
+}
+
+func TestNewConfigCacheParamsByIDAndNameRegular(t *testing.T) {
+	config, err := New(strings.NewReader(configParamsByIDAndNameRegular))
+	require.NoError(t, err, err)
+	require.True(t, config.CacheMethods[0].Kind.IsRegular())
 }

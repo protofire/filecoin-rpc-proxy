@@ -10,7 +10,7 @@ import (
 func TestNewMemoryCacheDefault(t *testing.T) {
 	cache := NewMemoryCacheDefault()
 	expectedValue := []byte("cache")
-	err := cache.Set("1", expectedValue)
+	err := cache.Set("1", expectedValue, expectedValue)
 	require.NoError(t, err)
 	value, err := cache.Get("1")
 	require.NoError(t, err)
@@ -20,7 +20,7 @@ func TestNewMemoryCacheExpired(t *testing.T) {
 	d := time.Duration(1) * time.Second
 	cache := NewMemoryCache(d, -1)
 	expectedValue := []byte("cache")
-	err := cache.Set("1", expectedValue)
+	err := cache.Set("1", expectedValue, expectedValue)
 	require.NoError(t, err)
 	time.Sleep(d)
 	value, err := cache.Get("1")

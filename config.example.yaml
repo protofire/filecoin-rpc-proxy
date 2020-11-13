@@ -3,10 +3,12 @@ jwt_secret: secret
 jwt_alg: HS256
 port: 8080
 host: 0.0.0.0
-update_cache_period: 300
+update_user_cache_period: 300
+update_system_cache_period: 3600
 log_level: INFO
 cache_methods:
   - name: method
+    kind: custom
     cache_by_params: true
     params_for_request:
       - one
