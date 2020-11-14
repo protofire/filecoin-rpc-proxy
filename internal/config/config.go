@@ -39,7 +39,7 @@ func (t MethodType) Valid() error {
 	case CustomMethod, RegularMethod:
 		return nil
 	default:
-		return fmt.Errorf("unknown method: %s", t)
+		return fmt.Errorf("unknown method type: %s", t)
 	}
 }
 

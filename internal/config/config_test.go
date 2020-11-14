@@ -69,6 +69,18 @@ cache_methods:
   params_in_cache_by_name:
     - %s
 `, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
+	configParamsByIDAndNameWrongMethodKind = fmt.Sprintf(`
+proxy_url: %s
+jwt_secret: %s
+cache_methods:
+- name: %s
+  kind: kind
+  cache_by_params: true
+  params_in_cache_by_id:
+    - %s
+  params_in_cache_by_name:
+    - %s
+`, proxyURL, token, methodName, strconv.Itoa(paramInCacheID), paramInCacheName)
 )
 
 func TestNewConfigCacheParamsByID(t *testing.T) {
@@ -103,4 +115,9 @@ func TestNewConfigCacheParamsByIDAndNameRegular(t *testing.T) {
 	config, err := New(strings.NewReader(configParamsByIDAndNameRegular))
 	require.NoError(t, err, err)
 	require.True(t, config.CacheMethods[0].Kind.IsRegular())
+}
+
+func TestNewConfigCacheParamsByIDWrongMethodKind(t *testing.T) {
+	_, err := New(strings.NewReader(configParamsByIDAndNameWrongMethodKind))
+	require.Error(t, err, err)
 }
