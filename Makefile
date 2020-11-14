@@ -20,7 +20,9 @@ VERSION				?= $(shell git describe --exact-match --tags 2>/dev/null || echo ${DE
 GOARCH				:= amd64
 LDFLAGS				:= "-w -s -X 'main.Version=${VERSION}'"
 CMD_PACKAGE 		:= ./cmd/proxy
-BINARY 				?= ./proxy
+NAME 				?= proxy
+BINARY 				?= ./${NAME}
+TAG					?= ${VERSION}
 
 $(GOBIN):
 	echo "create gobin"
@@ -47,6 +49,9 @@ unit: work
 
 fmt:
 	go fmt ./...
+
+docker:
+	docker build -t ${NAME}:${TAG} .
 
 goimports:
 ifndef HAS_GOIMPORTS

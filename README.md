@@ -8,7 +8,7 @@ Json RPC proxy with a cache
 
 #### Docker
 
-    docker build -t proxy .
+    make docker
 
 #### Start
 
