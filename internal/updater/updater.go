@@ -18,19 +18,23 @@ import (
 )
 
 type Updater struct {
-	cacher  proxy.ResponseCacher
-	logger  *logrus.Entry
-	url     string
-	token   string
-	stopped int32
+	cacher      proxy.ResponseCacher
+	logger      *logrus.Entry
+	url         string
+	token       string
+	stopped     int32
+	batchSize   int
+	concurrency int
 }
 
-func New(cacher proxy.ResponseCacher, logger *logrus.Entry, url, token string) *Updater {
+func New(cacher proxy.ResponseCacher, logger *logrus.Entry, url, token string, batchSize int, concurrency int) *Updater {
 	u := &Updater{
-		cacher: cacher,
-		logger: logger,
-		url:    url,
-		token:  token,
+		cacher:      cacher,
+		logger:      logger,
+		url:         url,
+		token:       token,
+		batchSize:   batchSize,
+		concurrency: concurrency,
 	}
 	return u
 }
@@ -41,19 +45,15 @@ func FromConfig(conf *config.Config, cacher proxy.ResponseCacher, logger *logrus
 		return nil, err
 	}
 	logger.Infof("Proxy token: %s", string(token))
-	return New(cacher, logger, conf.ProxyURL, string(token)), nil
+	return New(cacher, logger, conf.ProxyURL, string(token), conf.RequestsBatchSize, conf.RequestsConcurrency), nil
 }
 
-func (u *Updater) Start(ctx context.Context, period int) {
-	defer func() {
-		u.logger.Info("Exiting cache updater...")
-		atomic.AddInt32(&u.stopped, 1)
-	}()
+func (u *Updater) start(ctx context.Context, update func() error, period int) {
 
 	ticker := time.NewTicker(time.Second * time.Duration(period))
 
-	if err := u.update(); err != nil {
-		u.logger.Errorf("cannot update cached requests: %v", err)
+	if err := update(); err != nil {
+		u.logger.Errorf("cannot update requests: %v", err)
 	}
 
 	for {
@@ -61,28 +61,44 @@ func (u *Updater) Start(ctx context.Context, period int) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := u.update(); err != nil {
-				u.logger.Errorf("cannot update cached requests: %v", err)
+			if err := update(); err != nil {
+				u.logger.Errorf("cannot update requests: %v", err)
 			}
 		}
 	}
 }
 
-func (u *Updater) StopWithTimeout(ctx context.Context) bool {
+func (u *Updater) StartMethodUpdater(ctx context.Context, period int) {
+	defer func() {
+		u.logger.Info("Exiting methods updater...")
+		atomic.AddInt32(&u.stopped, 1)
+	}()
+	u.start(ctx, u.updateMethods, period)
+}
+
+func (u *Updater) StartCacheUpdater(ctx context.Context, period int) {
+	defer func() {
+		u.logger.Info("Exiting cache updater...")
+		atomic.AddInt32(&u.stopped, 1)
+	}()
+	u.start(ctx, u.updateCache, period)
+}
+
+func (u *Updater) StopWithTimeout(ctx context.Context, waitFor int) bool {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
 		case <-ctx.Done():
 			return false
 		case <-ticker.C:
-			if atomic.LoadInt32(&u.stopped) == 1 {
+			if atomic.LoadInt32(&u.stopped) == int32(waitFor) {
 				return true
 			}
 		}
 	}
 }
 
-func (u *Updater) requests() requests.RPCRequests {
+func (u *Updater) methodRequests() requests.RPCRequests {
 	reqs := requests.RPCRequests{}
 	counter := float64(1)
 	for _, method := range u.cacher.Matcher().Methods() {
@@ -97,8 +113,37 @@ func (u *Updater) requests() requests.RPCRequests {
 	return reqs
 }
 
-func (u *Updater) update() error {
-	reqs := u.requests()
+func (u *Updater) cacheRequests() requests.RPCRequests {
+	reqs := requests.RPCRequests{}
+	counter := float64(1)
+	for _, item := range u.cacher.Cacher().Requests() {
+		req, ok := item.(requests.RPCRequest)
+		if ok {
+			req.ID = counter
+			reqs = append(reqs, req)
+		}
+		counter++
+	}
+	return reqs
+}
+
+func (u *Updater) updateMethods() error {
+	reqs := u.methodRequests()
+	if reqs.IsEmpty() {
+		return nil
+	}
+	return u.update(reqs)
+}
+
+func (u *Updater) updateCache() error {
+	reqs := u.cacheRequests()
+	if reqs.IsEmpty() {
+		return nil
+	}
+	return u.update(reqs)
+}
+
+func (u *Updater) update(reqs requests.RPCRequests) error {
 	if reqs.IsEmpty() {
 		return nil
 	}

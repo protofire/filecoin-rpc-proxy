@@ -26,6 +26,7 @@ type ResponseCacher interface {
 	SetResponseCache(requests.RPCRequest, requests.RPCResponse) error
 	GetResponseCache(req requests.RPCRequest) (requests.RPCResponse, error)
 	Matcher() matcher.Matcher
+	Cacher() cache.Cache
 }
 
 func (rc *ResponseCache) SetResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
@@ -75,4 +76,8 @@ func (rc *ResponseCache) GetResponseCache(req requests.RPCRequest) (requests.RPC
 
 func (rc *ResponseCache) Matcher() matcher.Matcher {
 	return rc.matcher
+}
+
+func (rc *ResponseCache) Cacher() cache.Cache {
+	return rc.cache
 }

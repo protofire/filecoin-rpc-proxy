@@ -81,7 +81,8 @@ func startCommand(c *cli.Context) error {
 	s := server.StartHTTPServer(handler)
 
 	ctx, done := context.WithCancel(context.Background())
-	go updaterImp.Start(ctx, conf.UpdateSystemCachePeriod)
+	go updaterImp.StartMethodUpdater(ctx, conf.UpdateSystemCachePeriod)
+	go updaterImp.StartCacheUpdater(ctx, conf.UpdateUserCachePeriod)
 
 	sig := <-stop
 	log.Infof("Caught sig: %+v. Waiting process is being stopped...", sig)
@@ -90,7 +91,7 @@ func startCommand(c *cli.Context) error {
 	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancelUpdater()
 
-	if updaterImp.StopWithTimeout(ctxUpdater) {
+	if updaterImp.StopWithTimeout(ctxUpdater, 2) {
 		log.Info("Shut down server gracefully")
 	} else {
 		log.Info("Shut down server forcibly")

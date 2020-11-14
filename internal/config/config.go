@@ -20,6 +20,8 @@ const (
 	defaultJWTAlgorithm                    = "HS256"
 	defaultSystemCachePeriod               = 600
 	defaultUserCachePeriod                 = 3600
+	defaultRequestsBatchSize               = 5
+	defaultRequestsConcurrency             = 10
 	CustomMethod                MethodType = "custom"
 	RegularMethod               MethodType = "regular"
 )
@@ -80,6 +82,8 @@ type Config struct {
 	Port                    int           `yaml:"port"`
 	UpdateSystemCachePeriod int           `yaml:"update_system_cache_period"`
 	UpdateUserCachePeriod   int           `yaml:"update_user_cache_period"`
+	RequestsBatchSize       int           `yaml:"requests_batch_size"`
+	RequestsConcurrency     int           `yaml:"requests_concurrency"`
 	ProxyURL                string        `yaml:"proxy_url"`
 	CacheSettings           CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel                string        `yaml:"log_level"`
@@ -119,6 +123,12 @@ func (c *Config) Init() {
 	}
 	if c.UpdateUserCachePeriod == 0 {
 		c.UpdateUserCachePeriod = defaultUserCachePeriod
+	}
+	if c.RequestsBatchSize == 0 {
+		c.RequestsBatchSize = defaultRequestsBatchSize
+	}
+	if c.RequestsConcurrency == 0 {
+		c.RequestsConcurrency = defaultRequestsConcurrency
 	}
 	for idx := range c.CacheMethods {
 		method := c.CacheMethods[idx]

@@ -27,11 +27,20 @@ type Value struct {
 type Cache interface {
 	Set(key string, request, response interface{}) error
 	Get(key string) (interface{}, error)
+	Requests() []interface{}
 }
 
 // MemoryCache ...
 type MemoryCache struct {
 	*cache.Cache
+}
+
+func (m *MemoryCache) Requests() []interface{} {
+	res := make([]interface{}, m.Cache.ItemCount())
+	for _, item := range m.Cache.Items() {
+		res = append(res, item.Object.(Value).Request)
+	}
+	return res
 }
 
 // Set ...
