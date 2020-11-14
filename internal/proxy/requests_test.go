@@ -17,7 +17,6 @@ import (
 )
 
 func TestRequest(t *testing.T) {
-
 	method := "test"
 	requestID := "1"
 	result := float64(15)
@@ -69,5 +68,4 @@ func TestRequest(t *testing.T) {
 	require.Len(t, responses, 1)
 	require.Equal(t, responses[0].Result, result)
 	require.Equal(t, responses[0].ID, requestID)
-
 }

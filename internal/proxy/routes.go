@@ -40,10 +40,10 @@ func Authenticator(next http.Handler) http.Handler {
 			resp := requests.JSONRPCUnauthenticated()
 			data, err := json.Marshal(resp)
 			if err != nil {
-				http.Error(w, http.StatusText(401), 401)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-			http.Error(w, string(data), 401)
+			http.Error(w, string(data), http.StatusUnauthorized)
 			return
 		}
 
@@ -51,10 +51,10 @@ func Authenticator(next http.Handler) http.Handler {
 			resp := requests.JSONRPCUnauthenticated()
 			data, err := json.Marshal(resp)
 			if err != nil {
-				http.Error(w, http.StatusText(401), 401)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-			http.Error(w, string(data), 401)
+			http.Error(w, string(data), http.StatusUnauthorized)
 			return
 		}
 

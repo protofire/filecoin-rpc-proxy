@@ -20,7 +20,6 @@ import (
 const testMethod = "test"
 
 func TestServerAuxiliaryFunc(t *testing.T) {
-
 	conf, err := testhelpers.GetConfig("http://test.com", testMethod)
 	require.NoError(t, err)
 	server, err := FromConfig(conf)
@@ -43,7 +42,6 @@ func TestServerAuxiliaryFunc(t *testing.T) {
 }
 
 func TestServerJWTAuthFunc401(t *testing.T) {
-
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Kind", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -62,11 +60,9 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 	resp, err := http.Get(fmt.Sprintf("%s/%s", s.URL, "/test"))
 	require.NoError(t, err)
 	require.Equal(t, 401, resp.StatusCode)
-
 }
 
 func TestServerJWTAuthFunc(t *testing.T) {
-
 	conf, err := testhelpers.GetConfig("", testMethod)
 	require.NoError(t, err)
 	jwtToken, err := auth.NewJWT(conf.JWTSecret, conf.JWTAlgorithm, []string{"admin"})
@@ -96,5 +92,4 @@ func TestServerJWTAuthFunc(t *testing.T) {
 	resp, err := (&http.Client{}).Do(req)
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.StatusCode)
-
 }

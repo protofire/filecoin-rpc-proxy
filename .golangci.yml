@@ -9,20 +9,27 @@ linters:
     - errcheck
     - gosimple
     - govet
+    - staticcheck
+    - structcheck
+    - unused
+    - varcheck
     - gofmt
     - golint
     - goimports
+    - gosimple
+    - goconst
+    - gosec
+    - gocritic
+    - gocyclo
     - unparam
     - unconvert
     - interfacer
     - megacheck
-    - staticcheck
-    - unused
-    - gosimple
     - dupl
-    - goconst
-    - gocyclo
     - nakedret
     - scopelint
     - misspell
-    - gosec
+    - prealloc
+    - stylecheck
+    - maligned
+    - goprintffuncname

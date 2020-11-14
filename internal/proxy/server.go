@@ -86,7 +86,6 @@ func (p *Server) ReadyFunc(w http.ResponseWriter, _ *http.Request) {
 
 // StartHTTPServer starts http server
 func (p *Server) StartHTTPServer(h http.Handler) *http.Server {
-
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", p.host, p.port),
 		Handler: h,
@@ -100,5 +99,4 @@ func (p *Server) StartHTTPServer(h http.Handler) *http.Server {
 	}()
 
 	return server
-
 }

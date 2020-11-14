@@ -69,7 +69,6 @@ func TestRPCResponsesUnmarshal(t *testing.T) {
 }
 
 func TestTransportWithCache(t *testing.T) {
-
 	requestID := "1"
 	result := float64(15)
 
@@ -109,7 +108,6 @@ func TestTransportWithCache(t *testing.T) {
 
 	frontend := httptest.NewServer(http.HandlerFunc(server.RPCProxy))
 	defer frontend.Close()
-	//frontendClient := frontend.Client()
 
 	resp, err := http.Post(
 		frontend.URL,
@@ -128,16 +126,13 @@ func TestTransportWithCache(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, cache.Result, result)
 	require.Equal(t, cache.ID, requestID)
-
 }
 
 func TestTransportBulkRequest(t *testing.T) {
-
 	requestID1 := "10"
 	requestID2 := "20"
 	result1 := float64(15)
 	result2 := float64(16)
-
 	response1 := requests.RPCResponse{
 		JSONRPC: "2.0",
 		ID:      requestID1,
@@ -195,7 +190,6 @@ func TestTransportBulkRequest(t *testing.T) {
 
 	frontend := httptest.NewServer(http.HandlerFunc(server.RPCProxy))
 	defer frontend.Close()
-	//frontendClient := frontend.Client()
 
 	resp, err := http.Post(
 		frontend.URL,
@@ -211,16 +205,12 @@ func TestTransportBulkRequest(t *testing.T) {
 	require.Equal(t, responses[1].ID, requestID2)
 	require.Equal(t, responses[0].Result, result1)
 	require.Equal(t, responses[1].Result, result2)
-
 }
 
 func TestTransportBulkRequestReverseResponses(t *testing.T) {
-
 	methods := []string{"test1", "test2", "test3", "test4", "test5"}
-
 	var resps requests.RPCResponses
 	var reqs requests.RPCRequests
-
 	for idx, method := range methods {
 		id := strconv.Itoa(idx + 1)
 		reqs = append(reqs, requests.RPCRequest{
@@ -284,5 +274,4 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, resp.ID, req.ID)
 	}
-
 }

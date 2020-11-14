@@ -107,7 +107,6 @@ func startCommand(c *cli.Context) error {
 	}
 
 	return err
-
 }
 
 func prepareCliApp() *cli.App {
@@ -166,7 +165,6 @@ func prepareCliApp() *cli.App {
 	}
 
 	return app
-
 }
 
 func main() {
