@@ -18,9 +18,9 @@ func (e Error) Error() string {
 	return e.message
 }
 
-type Value struct {
-	Request  interface{}
-	Response interface{}
+type value struct {
+	request  interface{}
+	response interface{}
 }
 
 // Cache ...
@@ -38,16 +38,16 @@ type MemoryCache struct {
 func (m *MemoryCache) Requests() []interface{} {
 	res := make([]interface{}, m.Cache.ItemCount())
 	for _, item := range m.Cache.Items() {
-		res = append(res, item.Object.(Value).Request)
+		res = append(res, item.Object.(value).request)
 	}
 	return res
 }
 
 // Set ...
 func (m *MemoryCache) Set(key string, request, response interface{}) error {
-	m.Cache.Set(key, Value{
-		Request:  request,
-		Response: response,
+	m.Cache.Set(key, value{
+		request:  request,
+		response: response,
 	}, 0)
 	metrics.SetCacheSize(int64(m.Cache.ItemCount()))
 	return nil
@@ -57,7 +57,7 @@ func (m *MemoryCache) Set(key string, request, response interface{}) error {
 func (m *MemoryCache) Get(key string) (interface{}, error) {
 	val, ok := m.Cache.Get(key)
 	if ok {
-		return val.(Value).Response, nil
+		return val.(value).response, nil
 	}
 	return nil, nil
 }
