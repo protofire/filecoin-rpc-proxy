@@ -151,10 +151,10 @@ func (c *Config) Validate() error {
 			return err
 		}
 		if method.Kind.IsCustom() && method.ParamsForRequest == nil {
-			return fmt.Errorf("custom method type should have been set ParamsForRequest")
+			return fmt.Errorf("custom method type should have been set with params_for_request")
 		}
 		if method.Kind.IsRegular() && method.ParamsForRequest != nil {
-			return fmt.Errorf("regular method type should not have been set ParamsForRequest")
+			return fmt.Errorf("regular method type should not have been set with params_for_request")
 		}
 	}
 	if c.JWTSecret == "" {

@@ -7,13 +7,19 @@ update_user_cache_period: 3600
 update_system_cache_period: 600
 log_level: INFO
 cache_methods:
-  - name: method
+  - name: method1
     kind: custom
     cache_by_params: true
     params_for_request:
       - one
       - two
       - three
+    params_in_cache_by_id:
+      - 0
+      - 1
+  - name: method2
+    kind: regular
+    cache_by_params: true
     params_in_cache_by_id:
       - 0
       - 1
