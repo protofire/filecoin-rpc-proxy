@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
 )
 
 const (
@@ -151,27 +148,10 @@ func parseResponseBody(body []byte) ([]RPCResponse, error) {
 	return []RPCResponse{rpc}, nil
 }
 
-func readBody(r io.ReadCloser) ([]byte, error) {
-	if r == nil {
-		return nil, nil
-	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			logger.Log.Errorf("cannot close http request body: %v", err)
-		}
-	}()
-
-	body, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read request body: %w", err)
-	}
-	return body, nil
-}
-
 func ParseRequests(req *http.Request) (RPCRequests, error) {
 	var err error
 	var res []RPCRequest
-	body, err := readBody(req.Body)
+	body, err := utils.Read(req.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +175,7 @@ func ParseRequests(req *http.Request) (RPCRequests, error) {
 func ParseResponses(req *http.Response) (RPCResponses, []byte, error) {
 	var err error
 	var res RPCResponses
-	body, err := readBody(req.Body)
+	body, err := utils.Read(req.Body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,7 +237,11 @@ func JSONRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
 }
 
 func Request(url, token string, requests RPCRequests) (RPCResponses, []byte, error) {
-	jsonBody, err := json.Marshal(requests)
+	var reqs interface{} = requests
+	if len(requests) == 1 {
+		reqs = requests[0]
+	}
+	jsonBody, err := json.Marshal(reqs)
 	if err != nil {
 		return nil, nil, err
 	}

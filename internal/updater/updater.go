@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/auth"
@@ -85,7 +87,7 @@ func (u *Updater) StartCacheUpdater(ctx context.Context, period int) {
 }
 
 func (u *Updater) StopWithTimeout(ctx context.Context, waitFor int) bool {
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	for {
 		select {
 		case <-ctx.Done():
@@ -128,41 +130,68 @@ func (u *Updater) cacheRequests() requests.RPCRequests {
 }
 
 func (u *Updater) updateMethods() error {
-	reqs := u.methodRequests()
-	if reqs.IsEmpty() {
-		return nil
+	if reqs := u.methodRequests(); !reqs.IsEmpty() {
+		return u.update(reqs)
 	}
-	return u.update(reqs)
+	return nil
 }
 
 func (u *Updater) updateCache() error {
-	reqs := u.cacheRequests()
-	if reqs.IsEmpty() {
-		return nil
+	if reqs := u.cacheRequests(); !reqs.IsEmpty() {
+		return u.update(reqs)
 	}
-	return u.update(reqs)
+	return nil
 }
 
 func (u *Updater) update(reqs requests.RPCRequests) error {
 	if reqs.IsEmpty() {
 		return nil
 	}
-	responses, _, err := requests.Request(u.url, u.token, reqs)
-	if err != nil {
-		return err
+
+	ch := make(chan struct{}, u.concurrency)
+	errs := make(chan error, u.concurrency)
+
+	for i := 0; i < len(reqs); i += u.batchSize {
+		ch <- struct{}{}
+		end := utils.Min(i+u.batchSize, len(reqs))
+
+		go func(reqs requests.RPCRequests) {
+
+			defer func() {
+				<-ch
+			}()
+
+			responses, _, err := requests.Request(u.url, u.token, reqs)
+			if err != nil {
+				errs <- err
+				return
+			}
+
+			multiErr := &multierror.Error{}
+
+			for _, resp := range responses {
+				req, ok := reqs.FindByID(resp.ID)
+				if ok {
+					err := u.cacher.SetResponseCache(req, resp)
+					if err != nil {
+						multiErr = multierror.Append(multiErr, err)
+					}
+				}
+			}
+
+			errs <- multiErr.ErrorOrNil()
+
+		}(reqs[i:end])
 	}
 
 	multiErr := &multierror.Error{}
 
-	for _, resp := range responses {
-		req, ok := reqs.FindByID(resp.ID)
-		if ok {
-			err := u.cacher.SetResponseCache(req, resp)
-			if err != nil {
-				multiErr = multierror.Append(multiErr, err)
-			}
+	for err := range errs {
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
 		}
 	}
 
 	return multiErr.ErrorOrNil()
+
 }
