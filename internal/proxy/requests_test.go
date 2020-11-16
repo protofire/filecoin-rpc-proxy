@@ -64,6 +64,7 @@ func TestRequest(t *testing.T) {
 		string(token),
 		logger.Log,
 		false,
+		false,
 		requests.RPCRequests{request},
 	)
 	require.NoError(t, err)

@@ -11,6 +11,8 @@ update_custom_cache_period: 600
 log_level: INFO
 requests_batch_size: 1
 requests_concurrency: 5
+debug_http_request: true
+debug_http_response: false
 cache_methods:
   - name: Filecoin.ChainGetTipSetByHeight
     kind: regular

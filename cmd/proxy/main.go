@@ -63,7 +63,7 @@ func startCommand(c *cli.Context) error {
 		cache.NewMemoryCacheFromConfig(conf),
 		matcher.FromConfig(conf),
 	)
-	transportImp := proxy.NewTransport(cacher, log)
+	transportImp := proxy.NewTransport(cacher, log, conf.DebugHTTPRequest, conf.DebugHTTPResponse)
 
 	updaterImp, err := updater.FromConfig(conf, cacher, log)
 	if err != nil {

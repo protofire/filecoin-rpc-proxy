@@ -97,7 +97,8 @@ type Config struct {
 	CacheSettings           CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel                string        `yaml:"log_level"`
 	LogPrettyPrint          bool          `yaml:"log_pretty_print"`
-	Debug                   bool          `yaml:"debug,omitempty"`
+	DebugHTTPRequest        bool          `yaml:"debug_http_request,omitempty"`
+	DebugHTTPResponse       bool          `yaml:"debug_http_response,omitempty"`
 }
 
 func (c *Config) JWT() []byte {
@@ -148,7 +149,7 @@ func (c *Config) Init() {
 	if c.RequestsConcurrency == 0 {
 		c.RequestsConcurrency = defaultRequestsConcurrency
 	}
-	if c.Debug {
+	if c.DebugHTTPRequest || c.DebugHTTPResponse {
 		c.LogLevel = "DEBUG"
 	}
 	if len(c.JWTPermissions) == 0 {

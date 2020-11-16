@@ -21,14 +21,15 @@ import (
 )
 
 type Updater struct {
-	cacher      proxy.ResponseCacher
-	logger      *logrus.Entry
-	url         string
-	token       string
-	stopped     int32
-	debug       bool
-	batchSize   int
-	concurrency int
+	cacher            proxy.ResponseCacher
+	logger            *logrus.Entry
+	url               string
+	token             string
+	stopped           int32
+	debugHTTPRequest  bool
+	debugHTTPResponse bool
+	batchSize         int
+	concurrency       int
 }
 
 func New(
@@ -37,16 +38,18 @@ func New(
 	url, token string,
 	batchSize int,
 	concurrency int,
-	debug bool,
+	debugHTTPRequest bool,
+	debugHTTPResponse bool,
 ) *Updater {
 	u := &Updater{
-		cacher:      cacher,
-		logger:      logger,
-		url:         url,
-		token:       token,
-		batchSize:   batchSize,
-		concurrency: concurrency,
-		debug:       debug,
+		cacher:            cacher,
+		logger:            logger,
+		url:               url,
+		token:             token,
+		batchSize:         batchSize,
+		concurrency:       concurrency,
+		debugHTTPRequest:  debugHTTPRequest,
+		debugHTTPResponse: debugHTTPResponse,
 	}
 	return u
 }
@@ -57,7 +60,16 @@ func FromConfig(conf *config.Config, cacher proxy.ResponseCacher, logger *logrus
 		return nil, err
 	}
 	logger.Infof("Proxy token: %s", string(token))
-	return New(cacher, logger, conf.ProxyURL, string(token), conf.RequestsBatchSize, conf.RequestsConcurrency, conf.Debug), nil
+	return New(
+		cacher,
+		logger,
+		conf.ProxyURL,
+		string(token),
+		conf.RequestsBatchSize,
+		conf.RequestsConcurrency,
+		conf.DebugHTTPRequest,
+		conf.DebugHTTPResponse,
+	), nil
 }
 
 func (u *Updater) start(ctx context.Context, update func() error, period int) {
@@ -188,7 +200,7 @@ func (u *Updater) update(reqs requests.RPCRequests) error {
 				}()
 
 				u.logger.Infof("Updating %d cache records...", len(reqs))
-				responses, _, err := requests.Request(u.url, u.token, u.logger, u.debug, reqs)
+				responses, _, err := requests.Request(u.url, u.token, u.logger, u.debugHTTPRequest, u.debugHTTPResponse, reqs)
 				u.logger.Infof("Got %d responses", len(responses))
 				if err != nil {
 					errs <- err

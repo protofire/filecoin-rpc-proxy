@@ -35,7 +35,7 @@ func FromConfig(c *config.Config) (*Server, error) {
 		cache.NewMemoryCacheFromConfig(c),
 		matcher.FromConfig(c),
 	)
-	transport := NewTransport(cacher, log)
+	transport := NewTransport(cacher, log, c.DebugHTTPRequest, c.DebugHTTPResponse)
 	return newServer(proxyURL, c.Host, c.Port, log, transport)
 }
 

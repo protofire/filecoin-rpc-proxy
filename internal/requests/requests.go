@@ -107,7 +107,7 @@ func isBatch(msg []byte) bool {
 	return false
 }
 
-func debugRequest(request *http.Request, log *logrus.Entry, print bool) {
+func DebugRequest(request *http.Request, log *logrus.Entry) {
 	dump, err := httputil.DumpRequestOut(request, true)
 	if err != nil {
 		log.Error(err)
@@ -115,13 +115,10 @@ func debugRequest(request *http.Request, log *logrus.Entry, print bool) {
 		log.Logger.SetOutput(os.Stderr)
 		log.Debug(string(dump))
 		log.Logger.SetOutput(os.Stdout)
-		if print {
-			fmt.Println(string(dump))
-		}
 	}
 }
 
-func debugResponse(response *http.Response, log *logrus.Entry, print bool) {
+func DebugResponse(response *http.Response, log *logrus.Entry) {
 	dump, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		log.Error(err)
@@ -129,9 +126,6 @@ func debugResponse(response *http.Response, log *logrus.Entry, print bool) {
 		log.Logger.SetOutput(os.Stderr)
 		log.Debug(string(dump))
 		log.Logger.SetOutput(os.Stdout)
-		if print {
-			fmt.Println(string(dump))
-		}
 	}
 }
 
@@ -268,7 +262,14 @@ func JSONRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
 	return JSONRPCResponse(httpCode, rpcErr)
 }
 
-func Request(url, token string, log *logrus.Entry, debug bool, requests RPCRequests) (RPCResponses, []byte, error) {
+func Request(
+	url,
+	token string,
+	log *logrus.Entry,
+	debugHTTPRequest bool,
+	debugHTTPResponse bool,
+	requests RPCRequests,
+) (RPCResponses, []byte, error) {
 	var reqs interface{} = requests
 	if len(requests) == 1 {
 		reqs = requests[0]
@@ -284,15 +285,15 @@ func Request(url, token string, log *logrus.Entry, debug bool, requests RPCReque
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/json")
-	if debug {
-		debugRequest(req, log, false)
+	if debugHTTPRequest {
+		DebugRequest(req, log)
 	}
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
-	if debug {
-		debugResponse(resp, log, false)
+	if debugHTTPResponse {
+		DebugResponse(resp, log)
 	}
 	if resp.StatusCode >= 300 {
 		body, _ := utils.Read(resp.Body)

@@ -18,15 +18,19 @@ import (
 )
 
 type transport struct {
-	logger *logrus.Entry
-	cacher ResponseCacher
+	logger            *logrus.Entry
+	cacher            ResponseCacher
+	debugHTTPRequest  bool
+	debugHTTPResponse bool
 }
 
 // nolint
-func NewTransport(cacher ResponseCacher, logger *logrus.Entry) *transport {
+func NewTransport(cacher ResponseCacher, logger *logrus.Entry, debugHTTPRequest, debugHttpResponse bool) *transport {
 	return &transport{
-		logger: logger,
-		cacher: cacher,
+		logger:            logger,
+		cacher:            cacher,
+		debugHTTPRequest:  debugHTTPRequest,
+		debugHTTPResponse: debugHttpResponse,
 	}
 }
 
@@ -83,8 +87,14 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(proxyBody))
 	log.Debug("Forwarding request...")
 	req.Host = req.RemoteAddr
+	if t.debugHTTPRequest {
+		requests.DebugRequest(req, log)
+	}
 	res, err := http.DefaultTransport.RoundTrip(req)
 	elapsed := time.Since(start)
+	if t.debugHTTPResponse {
+		requests.DebugResponse(res, log)
+	}
 	metrics.SetRequestDuration(elapsed.Milliseconds())
 	if err != nil {
 		metrics.SetRequestsErrorCounter()
