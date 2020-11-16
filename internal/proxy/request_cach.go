@@ -10,11 +10,13 @@ import (
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
 )
 
+// ResponseCache implements ResponseCacher interface
 type ResponseCache struct {
 	cache   cache.Cache
 	matcher matcher.Matcher
 }
 
+// NewResponseCache fabric
 func NewResponseCache(cache cache.Cache, matcher matcher.Matcher) *ResponseCache {
 	return &ResponseCache{
 		cache:   cache,
@@ -22,6 +24,7 @@ func NewResponseCache(cache cache.Cache, matcher matcher.Matcher) *ResponseCache
 	}
 }
 
+// ResponseCacher interface
 type ResponseCacher interface {
 	SetResponseCache(requests.RPCRequest, requests.RPCResponse) error
 	GetResponseCache(req requests.RPCRequest) (requests.RPCResponse, error)
@@ -29,6 +32,7 @@ type ResponseCacher interface {
 	Cacher() cache.Cache
 }
 
+// SetResponseCache sets response cache based on the request
 func (rc *ResponseCache) SetResponseCache(req requests.RPCRequest, resp requests.RPCResponse) error {
 	keys := rc.matcher.Keys(req.Method, req.Params)
 	if len(keys) == 0 {
@@ -41,6 +45,7 @@ func (rc *ResponseCache) SetResponseCache(req requests.RPCRequest, resp requests
 	return mErr.ErrorOrNil()
 }
 
+// GetResponseCache return response from the cache for the request
 func (rc *ResponseCache) GetResponseCache(req requests.RPCRequest) (requests.RPCResponse, error) {
 	resp := requests.RPCResponse{}
 	keys := rc.matcher.Keys(req.Method, req.Params)
@@ -74,10 +79,12 @@ func (rc *ResponseCache) GetResponseCache(req requests.RPCRequest) (requests.RPC
 	return resp, nil
 }
 
+// Matcher interface implementation
 func (rc *ResponseCache) Matcher() matcher.Matcher {
 	return rc.matcher
 }
 
+// Cacher interface implementation
 func (rc *ResponseCache) Cacher() cache.Cache {
 	return rc.cache
 }
