@@ -80,7 +80,7 @@ type Config struct {
 	JWTSecret               string        `yaml:"jwt_secret"`
 	Host                    string        `yaml:"host"`
 	Port                    int           `yaml:"port"`
-	UpdateSystemCachePeriod int           `yaml:"update_system_cache_period"`
+	UpdateCustomCachePeriod int           `yaml:"update_custom_cache_period"`
 	UpdateUserCachePeriod   int           `yaml:"update_user_cache_period"`
 	RequestsBatchSize       int           `yaml:"requests_batch_size"`
 	RequestsConcurrency     int           `yaml:"requests_concurrency"`
@@ -118,8 +118,8 @@ func (c *Config) Init() {
 	if c.JWTAlgorithm == "" {
 		c.JWTAlgorithm = defaultJWTAlgorithm
 	}
-	if c.UpdateSystemCachePeriod == 0 {
-		c.UpdateSystemCachePeriod = defaultSystemCachePeriod
+	if c.UpdateCustomCachePeriod == 0 {
+		c.UpdateCustomCachePeriod = defaultSystemCachePeriod
 	}
 	if c.UpdateUserCachePeriod == 0 {
 		c.UpdateUserCachePeriod = defaultUserCachePeriod

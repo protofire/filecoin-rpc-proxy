@@ -81,7 +81,7 @@ func startCommand(c *cli.Context) error {
 	s := server.StartHTTPServer(handler)
 
 	ctx, done := context.WithCancel(context.Background())
-	go updaterImp.StartMethodUpdater(ctx, conf.UpdateSystemCachePeriod)
+	go updaterImp.StartMethodUpdater(ctx, conf.UpdateCustomCachePeriod)
 	go updaterImp.StartCacheUpdater(ctx, conf.UpdateUserCachePeriod)
 
 	sig := <-stop
