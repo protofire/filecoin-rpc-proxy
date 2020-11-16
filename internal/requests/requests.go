@@ -93,6 +93,10 @@ type rpcError struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+func (r *rpcError) Error() string {
+	return fmt.Sprintf("RCP error. Code: %d. Message: %s. data: %v", r.Code, r.Message, r.Data)
+}
+
 func (r RPCResponse) IsEmpty() bool {
 	return r.JSONRPC == ""
 }
@@ -250,6 +254,7 @@ func JSONRPCResponse(httpCode int, v interface{}) (*http.Response, error) {
 	return &http.Response{
 		Body:       ioutil.NopCloser(bytes.NewReader(body)),
 		StatusCode: httpCode,
+		Header:     map[string][]string{"Content-Type": {"application/json"}},
 	}, nil
 }
 

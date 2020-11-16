@@ -210,10 +210,14 @@ func (u *Updater) update(reqs requests.RPCRequests) error {
 				multiErr := &multierror.Error{}
 
 				for _, resp := range responses {
-					u.logger.Infof("Processing response %#v...", resp)
+					if resp.Error != nil {
+						errs <- resp.Error
+						continue
+					}
 					req, ok := reqs.FindByID(resp.ID)
+					u.logger.Infof("Processing response ID %v...", resp.ID)
 					if ok {
-						u.logger.Infof("Setting response cache %#v...", resp)
+						u.logger.Infof("Setting response cache for request: %#v", req)
 						if err := u.cacher.SetResponseCache(req, resp); err != nil {
 							multiErr = multierror.Append(multiErr, err)
 						}

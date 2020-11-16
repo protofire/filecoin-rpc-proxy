@@ -73,6 +73,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var proxyBody []byte
 	switch len(proxyRequests) {
 	case 0:
+		log.Debug("returning proxy response...")
 		metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 		return preparedResponses.Response()
 	case 1:
