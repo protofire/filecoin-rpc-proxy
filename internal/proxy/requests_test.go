@@ -56,7 +56,7 @@ func TestRequest(t *testing.T) {
 	frontend := httptest.NewServer(handler)
 	defer frontend.Close()
 
-	token, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, []string{"admin"})
+	token, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, conf.JWTPermissions)
 	require.NoError(t, err)
 
 	responses, _, err := requests.Request(

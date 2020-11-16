@@ -2,11 +2,15 @@ proxy_url: https://node.glif.io/space06/lotus/rpc/v0
 jwt_secret: X
 jwt_secret_base64: X
 jwt_alg: HS256
+jwt_permissions:
+  - read
 port: 8080
 host: 0.0.0.0
 update_user_cache_period: 3600
 update_custom_cache_period: 600
 log_level: INFO
+requests_batch_size: 1
+requests_concurrency: 5
 cache_methods:
   - name: Filecoin.ChainGetTipSetByHeight
     kind: regular

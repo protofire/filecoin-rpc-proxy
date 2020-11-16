@@ -52,7 +52,7 @@ func New(
 }
 
 func FromConfig(conf *config.Config, cacher proxy.ResponseCacher, logger *logrus.Entry) (*Updater, error) {
-	token, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, []string{"admin"})
+	token, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, conf.JWTPermissions)
 	if err != nil {
 		return nil, err
 	}

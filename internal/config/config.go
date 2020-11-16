@@ -27,6 +27,10 @@ const (
 	RegularMethod               MethodType = "regular"
 )
 
+var (
+	defaultJWTPermissions = []string{"read"}
+)
+
 func (t MethodType) IsCustom() bool {
 	return t == CustomMethod
 }
@@ -82,6 +86,7 @@ type Config struct {
 	JWTAlgorithm            string        `yaml:"jwt_alg"`
 	JWTSecret               string        `yaml:"jwt_secret"`
 	JWTSecretBase64         string        `yaml:"jwt_secret_base64"`
+	JWTPermissions          []string      `json:"jwt_permissions"`
 	Host                    string        `yaml:"host"`
 	Port                    int           `yaml:"port"`
 	UpdateCustomCachePeriod int           `yaml:"update_custom_cache_period"`
@@ -145,6 +150,9 @@ func (c *Config) Init() {
 	}
 	if c.Debug {
 		c.LogLevel = "DEBUG"
+	}
+	if len(c.JWTPermissions) == 0 {
+		c.JWTPermissions = defaultJWTPermissions
 	}
 	for idx := range c.CacheMethods {
 		method := c.CacheMethods[idx]
