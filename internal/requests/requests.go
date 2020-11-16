@@ -107,7 +107,7 @@ func isBatch(msg []byte) bool {
 	return false
 }
 
-func debugRequest(request *http.Request, log *logrus.Entry) {
+func debugRequest(request *http.Request, log *logrus.Entry, print bool) {
 	dump, err := httputil.DumpRequestOut(request, true)
 	if err != nil {
 		log.Error(err)
@@ -115,10 +115,13 @@ func debugRequest(request *http.Request, log *logrus.Entry) {
 		log.Logger.SetOutput(os.Stderr)
 		log.Debug(string(dump))
 		log.Logger.SetOutput(os.Stdout)
+		if print {
+			fmt.Println(string(dump))
+		}
 	}
 }
 
-func debugResponse(response *http.Response, log *logrus.Entry) {
+func debugResponse(response *http.Response, log *logrus.Entry, print bool) {
 	dump, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		log.Error(err)
@@ -126,6 +129,9 @@ func debugResponse(response *http.Response, log *logrus.Entry) {
 		log.Logger.SetOutput(os.Stderr)
 		log.Debug(string(dump))
 		log.Logger.SetOutput(os.Stdout)
+		if print {
+			fmt.Println(string(dump))
+		}
 	}
 }
 
@@ -279,14 +285,14 @@ func Request(url, token string, log *logrus.Entry, debug bool, requests RPCReque
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/json")
 	if debug {
-		debugRequest(req, log)
+		debugRequest(req, log, false)
 	}
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
 	if debug {
-		debugResponse(resp, log)
+		debugResponse(resp, log, false)
 	}
 	if resp.StatusCode >= 300 {
 		body, _ := utils.Read(resp.Body)
