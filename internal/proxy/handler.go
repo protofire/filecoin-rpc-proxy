@@ -99,8 +99,10 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for idx, response := range responses {
 		if response.Error == nil {
 			if request, ok := parsedRequests.FindByID(response.ID); ok {
-				if err := t.cacher.SetResponseCache(request, response); err != nil {
-					t.logger.Errorf("Cannot set cached response: %v", err)
+				if t.cacher.Matcher().IsCacheable(request.Method) {
+					if err := t.cacher.SetResponseCache(request, response); err != nil {
+						t.logger.Errorf("Cannot set cached response: %v", err)
+					}
 				}
 			}
 		}

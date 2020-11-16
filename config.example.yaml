@@ -1,5 +1,5 @@
-proxy_url: http://test.com
-jwt_secret: secret
+proxy_url: https://node.glif.io/space06/lotus/rpc/v0
+jwt_secret: X
 jwt_alg: HS256
 port: 8080
 host: 0.0.0.0
@@ -7,19 +7,26 @@ update_user_cache_period: 3600
 update_custom_cache_period: 600
 log_level: INFO
 cache_methods:
-  - name: method1
-    kind: custom
+  - name: Filecoin.ChainGetTipSetByHeight
+    kind: regular
     cache_by_params: true
-    params_for_request:
-      - one
-      - two
-      - three
     params_in_cache_by_id:
       - 0
-      - 1
-  - name: method2
+  - name: Filecoin.ClientQueryAsk
     kind: regular
     cache_by_params: true
     params_in_cache_by_id:
       - 0
       - 1
+  - name: Filecoin.StateCirculatingSupply
+    kind: custom
+    no_update_cache: true
+    cache_by_params: true
+    params_for_request:
+      - []
+  - name: Filecoin.StateMarketDeals
+    kind: custom
+    no_store_cache: true
+    cache_by_params: true
+    params_for_request:
+      - []

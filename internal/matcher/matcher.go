@@ -56,12 +56,16 @@ func (m methods) Custom() customMethods {
 type Matcher interface {
 	Keys(method string, params interface{}) cacheKeys
 	Methods() customMethods
+	IsUpdatable(method string) bool
+	IsCacheable(method string) bool
 }
 
 type cacheMethod struct {
 	name              string
 	kind              config.MethodType
 	cacheByParams     bool
+	noStoreCache      bool
+	noUpdateCache     bool
 	paramsInCacheID   []int
 	paramsInCacheName []string
 	paramsForRequest  interface{}
@@ -128,6 +132,32 @@ func newMatcher() *match {
 	return &match{methods: userMethods}
 }
 
+func (m *match) IsUpdatable(method string) bool {
+	methods, ok := m.methods[method]
+	if !ok {
+		return false
+	}
+	for _, m := range methods {
+		if m.noUpdateCache {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *match) IsCacheable(method string) bool {
+	methods, ok := m.methods[method]
+	if !ok {
+		return false
+	}
+	for _, m := range methods {
+		if m.noStoreCache {
+			return false
+		}
+	}
+	return true
+}
+
 func (m match) addMethod(method config.CacheMethod) {
 	paramsInCacheName := method.ParamsInCacheByName
 	sort.Strings(paramsInCacheName)
@@ -137,6 +167,8 @@ func (m match) addMethod(method config.CacheMethod) {
 		cacheByParams:     method.CacheByParams,
 		paramsInCacheID:   method.ParamsInCacheByID,
 		paramsInCacheName: paramsInCacheName,
+		noStoreCache:      method.NoStoreCache,
+		noUpdateCache:     method.NoUpdateCache,
 	})
 }
 

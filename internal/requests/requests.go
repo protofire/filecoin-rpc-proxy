@@ -255,5 +255,13 @@ func Request(url, token string, requests RPCRequests) (RPCResponses, []byte, err
 	if err != nil {
 		return nil, nil, err
 	}
+	if resp.StatusCode >= 300 {
+		body, _ := utils.Read(resp.Body)
+		return nil, nil, fmt.Errorf(
+			"cannot get custom reponses. status code: %d. response: %s",
+			resp.StatusCode,
+			string(body),
+		)
+	}
 	return ParseResponses(resp)
 }

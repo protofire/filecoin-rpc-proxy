@@ -2,6 +2,7 @@ package updater
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -121,6 +122,9 @@ func (u *Updater) cacheRequests() requests.RPCRequests {
 	for _, item := range u.cacher.Cacher().Requests() {
 		req, ok := item.(requests.RPCRequest)
 		if ok {
+			if !u.cacher.Matcher().IsUpdatable(req.Method) {
+				continue
+			}
 			req.ID = counter
 			reqs = append(reqs, req)
 		}
@@ -151,38 +155,59 @@ func (u *Updater) update(reqs requests.RPCRequests) error {
 	ch := make(chan struct{}, u.concurrency)
 	errs := make(chan error, u.concurrency)
 
-	for i := 0; i < len(reqs); i += u.batchSize {
-		ch <- struct{}{}
-		end := utils.Min(i+u.batchSize, len(reqs))
+	go func() {
 
-		go func(reqs requests.RPCRequests) {
+		var wg sync.WaitGroup
 
-			defer func() {
-				<-ch
-			}()
+		defer func() {
+			wg.Wait()
+			defer close(ch)
+			defer close(errs)
+		}()
 
-			responses, _, err := requests.Request(u.url, u.token, reqs)
-			if err != nil {
-				errs <- err
-				return
-			}
+		for i := 0; i < len(reqs); i += u.batchSize {
 
-			multiErr := &multierror.Error{}
+			ch <- struct{}{}
+			end := utils.Min(i+u.batchSize, len(reqs))
+			wg.Add(1)
 
-			for _, resp := range responses {
-				req, ok := reqs.FindByID(resp.ID)
-				if ok {
-					err := u.cacher.SetResponseCache(req, resp)
-					if err != nil {
-						multiErr = multierror.Append(multiErr, err)
+			go func(reqs requests.RPCRequests) {
+
+				defer func() {
+					wg.Done()
+					<-ch
+				}()
+
+				u.logger.Infof("Updating %d cache records...", len(reqs))
+				responses, _, err := requests.Request(u.url, u.token, reqs)
+				u.logger.Infof("Got %d responses", len(responses))
+				if err != nil {
+					errs <- err
+					return
+				}
+
+				multiErr := &multierror.Error{}
+
+				for _, resp := range responses {
+					u.logger.Infof("Processing response %#v...", resp)
+					req, ok := reqs.FindByID(resp.ID)
+					if ok {
+						u.logger.Infof("Setting response cache %#v...", resp)
+						if err := u.cacher.SetResponseCache(req, resp); err != nil {
+							multiErr = multierror.Append(multiErr, err)
+						}
 					}
 				}
-			}
 
-			errs <- multiErr.ErrorOrNil()
+				err = multiErr.ErrorOrNil()
+				if err != nil {
+					errs <- err
+				}
 
-		}(reqs[i:end])
-	}
+			}(reqs[i:end])
+		}
+
+	}()
 
 	multiErr := &multierror.Error{}
 
