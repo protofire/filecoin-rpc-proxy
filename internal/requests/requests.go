@@ -277,6 +277,7 @@ func Request(url, token string, log *logrus.Entry, debug bool, requests RPCReque
 		return nil, nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Content-Type", "application/json")
 	if debug {
 		debugRequest(req, log)
 	}

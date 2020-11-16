@@ -169,6 +169,7 @@ func (m match) addMethod(method config.CacheMethod) {
 		paramsInCacheName: paramsInCacheName,
 		noStoreCache:      method.NoStoreCache,
 		noUpdateCache:     method.NoUpdateCache,
+		paramsForRequest:  method.ParamsForRequest,
 	})
 }
 
