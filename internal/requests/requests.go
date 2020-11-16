@@ -7,7 +7,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"os"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
 )
@@ -101,6 +105,28 @@ func isBatch(msg []byte) bool {
 		return c == '['
 	}
 	return false
+}
+
+func debugRequest(request *http.Request, log *logrus.Entry) {
+	dump, err := httputil.DumpRequestOut(request, true)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Logger.SetOutput(os.Stderr)
+		log.Debug(string(dump))
+		log.Logger.SetOutput(os.Stdout)
+	}
+}
+
+func debugResponse(response *http.Response, log *logrus.Entry) {
+	dump, err := httputil.DumpResponse(response, true)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Logger.SetOutput(os.Stderr)
+		log.Debug(string(dump))
+		log.Logger.SetOutput(os.Stdout)
+	}
 }
 
 // getIP returns the original IP address from the request, checking special headers before falling back to remoteAddr.
@@ -236,7 +262,7 @@ func JSONRPCErrorResponse(httpCode int, data []byte) (*http.Response, error) {
 	return JSONRPCResponse(httpCode, rpcErr)
 }
 
-func Request(url, token string, requests RPCRequests) (RPCResponses, []byte, error) {
+func Request(url, token string, log *logrus.Entry, debug bool, requests RPCRequests) (RPCResponses, []byte, error) {
 	var reqs interface{} = requests
 	if len(requests) == 1 {
 		reqs = requests[0]
@@ -251,9 +277,15 @@ func Request(url, token string, requests RPCRequests) (RPCResponses, []byte, err
 		return nil, nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	if debug {
+		debugRequest(req, log)
+	}
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, nil, err
+	}
+	if debug {
+		debugResponse(resp, log)
 	}
 	if resp.StatusCode >= 300 {
 		body, _ := utils.Read(resp.Body)

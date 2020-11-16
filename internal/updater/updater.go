@@ -26,11 +26,19 @@ type Updater struct {
 	url         string
 	token       string
 	stopped     int32
+	debug       bool
 	batchSize   int
 	concurrency int
 }
 
-func New(cacher proxy.ResponseCacher, logger *logrus.Entry, url, token string, batchSize int, concurrency int) *Updater {
+func New(
+	cacher proxy.ResponseCacher,
+	logger *logrus.Entry,
+	url, token string,
+	batchSize int,
+	concurrency int,
+	debug bool,
+) *Updater {
 	u := &Updater{
 		cacher:      cacher,
 		logger:      logger,
@@ -38,6 +46,7 @@ func New(cacher proxy.ResponseCacher, logger *logrus.Entry, url, token string, b
 		token:       token,
 		batchSize:   batchSize,
 		concurrency: concurrency,
+		debug:       debug,
 	}
 	return u
 }
@@ -48,7 +57,7 @@ func FromConfig(conf *config.Config, cacher proxy.ResponseCacher, logger *logrus
 		return nil, err
 	}
 	logger.Infof("Proxy token: %s", string(token))
-	return New(cacher, logger, conf.ProxyURL, string(token), conf.RequestsBatchSize, conf.RequestsConcurrency), nil
+	return New(cacher, logger, conf.ProxyURL, string(token), conf.RequestsBatchSize, conf.RequestsConcurrency, conf.Debug), nil
 }
 
 func (u *Updater) start(ctx context.Context, update func() error, period int) {
@@ -179,7 +188,7 @@ func (u *Updater) update(reqs requests.RPCRequests) error {
 				}()
 
 				u.logger.Infof("Updating %d cache records...", len(reqs))
-				responses, _, err := requests.Request(u.url, u.token, reqs)
+				responses, _, err := requests.Request(u.url, u.token, u.logger, u.debug, reqs)
 				u.logger.Infof("Got %d responses", len(responses))
 				if err != nil {
 					errs <- err

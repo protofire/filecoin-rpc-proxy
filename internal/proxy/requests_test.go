@@ -62,6 +62,8 @@ func TestRequest(t *testing.T) {
 	responses, _, err := requests.Request(
 		frontend.URL,
 		string(token),
+		logger.Log,
+		false,
 		requests.RPCRequests{request},
 	)
 	require.NoError(t, err)
