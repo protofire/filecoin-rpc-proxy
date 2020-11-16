@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -80,6 +81,7 @@ type Config struct {
 	CacheMethods            []CacheMethod `yaml:"cache_methods,omitempty"`
 	JWTAlgorithm            string        `yaml:"jwt_alg"`
 	JWTSecret               string        `yaml:"jwt_secret"`
+	JWTSecretBase64         string        `yaml:"jwt_secret_base64"`
 	Host                    string        `yaml:"host"`
 	Port                    int           `yaml:"port"`
 	UpdateCustomCachePeriod int           `yaml:"update_custom_cache_period"`
@@ -90,6 +92,14 @@ type Config struct {
 	CacheSettings           CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel                string        `yaml:"log_level"`
 	LogPrettyPrint          bool          `yaml:"log_pretty_print"`
+}
+
+func (c *Config) JWT() []byte {
+	if c.JWTSecret != "" {
+		return []byte(c.JWTSecret)
+	}
+	jwt, _ := base64.StdEncoding.DecodeString(c.JWTSecretBase64)
+	return jwt
 }
 
 func New(reader io.Reader) (*Config, error) {
@@ -159,7 +169,7 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("regular method type should not have been set with params_for_request")
 		}
 	}
-	if c.JWTSecret == "" {
+	if c.JWTSecret == "" && c.JWTSecretBase64 == "" {
 		return fmt.Errorf("jwt secret is mandatory parameter")
 	}
 	return nil

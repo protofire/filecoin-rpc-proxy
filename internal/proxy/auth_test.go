@@ -65,7 +65,7 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 func TestServerJWTAuthFunc(t *testing.T) {
 	conf, err := testhelpers.GetConfig("", testMethod)
 	require.NoError(t, err)
-	jwtToken, err := auth.NewJWT(conf.JWTSecret, conf.JWTAlgorithm, []string{"admin"})
+	jwtToken, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, []string{"admin"})
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

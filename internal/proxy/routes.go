@@ -16,7 +16,7 @@ import (
 )
 
 func PrepareRoutes(c *config.Config, log *logrus.Entry, server *Server) *chi.Mux {
-	tokenAuth := auth.JWTSecret(c.JWTSecret, c.JWTAlgorithm)
+	tokenAuth := auth.JWTSecret(c.JWT(), c.JWTAlgorithm)
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(logger.NewStructuredLogger(log.Logger))

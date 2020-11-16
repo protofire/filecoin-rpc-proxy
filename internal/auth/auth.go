@@ -5,8 +5,8 @@ import (
 	"github.com/go-chi/jwtauth"
 )
 
-func JWTSecret(secret, alg string) *jwtauth.JWTAuth {
-	return jwtauth.New(alg, []byte(secret), nil)
+func JWTSecret(secret []byte, alg string) *jwtauth.JWTAuth {
+	return jwtauth.New(alg, secret, nil)
 }
 
 type jwtPayload struct {
@@ -26,9 +26,9 @@ func getJWTAlgorithm(alg string, secret []byte) *jwt.HMACSHA {
 	return algFunc(secret)
 }
 
-func NewJWT(secret, alg string, perms []string) ([]byte, error) {
+func NewJWT(secret []byte, alg string, perms []string) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms,
 	}
-	return jwt.Sign(&p, getJWTAlgorithm(alg, []byte(secret)))
+	return jwt.Sign(&p, getJWTAlgorithm(alg, secret))
 }

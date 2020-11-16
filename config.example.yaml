@@ -1,5 +1,6 @@
 proxy_url: https://node.glif.io/space06/lotus/rpc/v0
 jwt_secret: X
+jwt_secret_base64: X
 jwt_alg: HS256
 port: 8080
 host: 0.0.0.0
