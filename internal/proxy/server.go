@@ -41,13 +41,15 @@ func FromConfig(c *config.Config) (*Server, error) {
 
 func newServer(proxyURL *url.URL, host string, port int, log *logrus.Entry, transport *transport) (*Server, error) {
 	log.Infof("Initializing proxy server for %s...", proxyURL)
+	hostProxyURL := *proxyURL
+	hostProxyURL.Path = ""
 	transport.proxyURL = proxyURL
 	s := &Server{
 		host:      host,
 		port:      port,
 		target:    proxyURL,
 		logger:    log,
-		proxy:     httputil.NewSingleHostReverseProxy(proxyURL),
+		proxy:     httputil.NewSingleHostReverseProxy(&hostProxyURL),
 		transport: transport,
 	}
 	s.proxy.Transport = transport
