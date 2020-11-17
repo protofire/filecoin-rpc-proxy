@@ -88,10 +88,10 @@ func startCommand(c *cli.Context) error {
 	log.Infof("Caught sig: %+v. Waiting process is being stopped...", sig)
 	done()
 
-	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(conf.ShutdownTimeout)*time.Second)
 	defer cancelUpdater()
 
-	if updaterImp.StopWithTimeout(ctxUpdater, conf.ShutdownTimeout) {
+	if updaterImp.StopWithTimeout(ctxUpdater, 2) {
 		log.Info("Shut down server gracefully")
 	} else {
 		log.Info("Shut down server forcibly")
