@@ -16,23 +16,27 @@ debug_http_response: false
 cache_methods:
   - name: Filecoin.ChainGetTipSetByHeight
     kind: regular
+    enabled: true
     cache_by_params: true
     params_in_cache_by_id:
       - 0
   - name: Filecoin.ClientQueryAsk
     kind: regular
+    enabled: true
     cache_by_params: true
     params_in_cache_by_id:
       - 0
       - 1
   - name: Filecoin.StateCirculatingSupply
     kind: custom
+    enabled: true
     no_update_cache: true
     cache_by_params: true
     params_for_request:
       - []
   - name: Filecoin.StateMarketDeals
     kind: custom
+    enabled: true
     no_store_cache: true
     cache_by_params: true
     params_for_request:
