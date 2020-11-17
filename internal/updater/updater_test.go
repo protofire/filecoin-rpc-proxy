@@ -215,6 +215,7 @@ func TestMethodsUpdaterConcurrency(t *testing.T) {
 			CacheByParams:    true,
 			Kind:             &kind,
 			ParamsForRequest: params,
+			Enabled:          true,
 		})
 	}
 

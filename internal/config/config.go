@@ -67,6 +67,7 @@ func (t MethodType) MarshalYAML() (interface{}, error) {
 
 type CacheMethod struct {
 	Name                string      `yaml:"name"`
+	Enabled             bool        `yaml:"enabled,omitempty"`
 	CacheByParams       bool        `yaml:"cache_by_params,omitempty"`
 	NoStoreCache        bool        `yaml:"no_store_cache"`
 	NoUpdateCache       bool        `yaml:"no_update_cache"`
@@ -74,6 +75,18 @@ type CacheMethod struct {
 	ParamsInCacheByName []string    `yaml:"params_in_cache_by_name,omitempty"`
 	Kind                *MethodType `yaml:"kind,omitempty"`
 	ParamsForRequest    interface{} `yaml:"params_for_request,omitempty"`
+}
+
+func (c *CacheMethod) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type cacheMethod CacheMethod
+	m := cacheMethod{
+		Enabled: true,
+	}
+	if err := unmarshal(&m); err != nil {
+		return err
+	}
+	*c = CacheMethod(m)
+	return nil
 }
 
 type CacheSettings struct {

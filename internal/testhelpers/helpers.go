@@ -18,6 +18,7 @@ func GetConfig(url string, methods ...string) (*config.Config, error) {
 		conf.CacheMethods = append(conf.CacheMethods, config.CacheMethod{
 			Name:          method,
 			CacheByParams: true,
+			Enabled:       true,
 		})
 	}
 	conf.Init()
@@ -39,6 +40,7 @@ func GetConfigWithCustomMethods(url string, methods ...string) (*config.Config, 
 			CacheByParams:    true,
 			Kind:             &mt,
 			ParamsForRequest: []interface{}{},
+			Enabled:          true,
 		})
 	}
 	conf.Init()

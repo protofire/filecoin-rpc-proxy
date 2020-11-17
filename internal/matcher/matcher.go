@@ -159,6 +159,9 @@ func (m *match) IsCacheable(method string) bool {
 }
 
 func (m match) addMethod(method config.CacheMethod) {
+	if !method.Enabled {
+		return
+	}
 	paramsInCacheName := method.ParamsInCacheByName
 	sort.Strings(paramsInCacheName)
 	m.methods[method.Name] = append(m.methods[method.Name], cacheMethod{
