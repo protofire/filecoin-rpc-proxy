@@ -91,7 +91,7 @@ func startCommand(c *cli.Context) error {
 	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancelUpdater()
 
-	if updaterImp.StopWithTimeout(ctxUpdater, 15) {
+	if updaterImp.StopWithTimeout(ctxUpdater, conf.ShutdownTimeout) {
 		log.Info("Shut down server gracefully")
 	} else {
 		log.Info("Shut down server forcibly")

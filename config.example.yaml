@@ -13,6 +13,7 @@ requests_batch_size: 1
 requests_concurrency: 5
 debug_http_request: true
 debug_http_response: false
+shutdown_timeout: 15
 cache_methods:
   - name: Filecoin.ChainGetTipSetByHeight
     kind: regular

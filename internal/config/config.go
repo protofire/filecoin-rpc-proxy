@@ -23,6 +23,7 @@ const (
 	defaultUserCachePeriod                 = 3600
 	defaultRequestsBatchSize               = 5
 	defaultRequestsConcurrency             = 10
+	defaultShutdownTimeout                 = 20
 	CustomMethod                MethodType = "custom"
 	RegularMethod               MethodType = "regular"
 )
@@ -106,6 +107,7 @@ type Config struct {
 	UpdateUserCachePeriod   int           `yaml:"update_user_cache_period"`
 	RequestsBatchSize       int           `yaml:"requests_batch_size"`
 	RequestsConcurrency     int           `yaml:"requests_concurrency"`
+	ShutdownTimeout         int           `yaml:"shutdown_timeout"`
 	ProxyURL                string        `yaml:"proxy_url"`
 	CacheSettings           CacheSettings `yaml:"cache_settings,omitempty"`
 	LogLevel                string        `yaml:"log_level"`
@@ -167,6 +169,9 @@ func (c *Config) Init() {
 	}
 	if len(c.JWTPermissions) == 0 {
 		c.JWTPermissions = defaultJWTPermissions
+	}
+	if c.ShutdownTimeout == 0 {
+		c.ShutdownTimeout = defaultShutdownTimeout
 	}
 	for idx := range c.CacheMethods {
 		method := c.CacheMethods[idx]
