@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
@@ -20,6 +21,7 @@ import (
 type transport struct {
 	logger            *logrus.Entry
 	cacher            ResponseCacher
+	proxyURL          *url.URL
 	debugHTTPRequest  bool
 	debugHTTPResponse bool
 }
@@ -86,20 +88,21 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(proxyBody))
+	req.ContentLength = int64(len(proxyBody))
+	req.Host = t.proxyURL.Host
 	log.Debug("Forwarding request...")
-	req.Host = req.RemoteAddr
 	if t.debugHTTPRequest {
 		requests.DebugRequest(req, log)
 	}
 	res, err := http.DefaultTransport.RoundTrip(req)
 	elapsed := time.Since(start)
-	if t.debugHTTPResponse {
-		requests.DebugResponse(res, log)
-	}
 	metrics.SetRequestDuration(elapsed.Milliseconds())
 	if err != nil {
 		metrics.SetRequestsErrorCounter()
 		return res, err
+	}
+	if t.debugHTTPResponse {
+		requests.DebugResponse(res, log)
 	}
 	responses, body, err := requests.ParseResponses(res)
 	if err != nil {
