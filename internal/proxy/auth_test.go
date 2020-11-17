@@ -43,7 +43,7 @@ func TestServerAuxiliaryFunc(t *testing.T) {
 
 func TestServerJWTAuthFunc401(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -69,7 +69,7 @@ func TestServerJWTAuthFunc(t *testing.T) {
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		assert.Equal(t, r.Header.Get("Authorization"), fmt.Sprintf("Bearer %s", jwtToken))
 	}))

@@ -53,7 +53,7 @@ func TestMethodsUpdater(t *testing.T) {
 	lock := sync.Mutex{}
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		lock.Lock()
 		requestsCount++
@@ -125,7 +125,7 @@ func TestCacheUpdater(t *testing.T) {
 	lock := sync.Mutex{}
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		lock.Lock()
 		requestsCount++
@@ -189,7 +189,7 @@ func TestMethodsUpdaterConcurrency(t *testing.T) {
 	lock := sync.Mutex{}
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		reqs, err := requests.ParseRequests(r)
 		require.NoError(t, err)

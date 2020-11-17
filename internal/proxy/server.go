@@ -71,7 +71,7 @@ func (p *Server) RPCProxy(w http.ResponseWriter, r *http.Request) {
 
 // HealthFunc health checking
 func (p *Server) HealthFunc(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Kind", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	_, err := w.Write([]byte(`{"status": "ok"}`))
 	if err != nil {
 		p.logger.Errorf("response send error %v", err)
@@ -80,7 +80,7 @@ func (p *Server) HealthFunc(w http.ResponseWriter, _ *http.Request) {
 
 // ReadyFunc readiness checking
 func (p *Server) ReadyFunc(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Kind", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	_, err := w.Write([]byte(`{"status": "ok"}`))
 	if err != nil {
 		p.logger.Errorf("response send error %v", err)

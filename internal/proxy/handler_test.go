@@ -92,7 +92,7 @@ func TestTransportWithCache(t *testing.T) {
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, string(responseJSON))
 		if err != nil {
@@ -166,7 +166,7 @@ func TestTransportBulkRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		reqs, err := requests.ParseRequests(r)
 		require.NoError(t, err)
@@ -241,7 +241,7 @@ func TestTransportBulkRequestReverseResponses(t *testing.T) {
 	require.NoError(t, err)
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, err = fmt.Fprint(w, string(responsesJSON))
 		if err != nil {

@@ -38,7 +38,7 @@ func TestRequest(t *testing.T) {
 	}
 
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Kind", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, string(responseJSON))
 		if err != nil {
