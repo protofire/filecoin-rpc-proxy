@@ -104,6 +104,10 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.debugHTTPResponse {
 		requests.DebugResponse(res, log)
 	}
+	// no need cache
+	if !t.isCacheableRequests(parsedRequests) && inCacheRequestsCount == 0 {
+		return res, nil
+	}
 	responses, body, err := requests.ParseResponses(res)
 	if err != nil {
 		metrics.SetRequestsErrorCounter()
@@ -131,6 +135,15 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return resp, err
 	}
 	return resp, nil
+}
+
+func (t *transport) isCacheableRequests(reqs requests.RPCRequests) bool {
+	for _, req := range reqs {
+		if !t.cacher.Matcher().IsCacheable(req.Method) {
+			return false
+		}
+	}
+	return true
 }
 
 // fromCache checks presence of messages in the cache
