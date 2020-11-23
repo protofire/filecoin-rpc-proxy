@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/goleak"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
@@ -30,6 +32,7 @@ import (
 
 func TestMain(t *testing.M) {
 	logger.InitDefaultLogger()
+	goleak.VerifyTestMain(t)
 	os.Exit(t.Run())
 }
 

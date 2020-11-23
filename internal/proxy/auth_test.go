@@ -35,6 +35,9 @@ func TestServerAuxiliaryFunc(t *testing.T) {
 		path := paths[idx]
 		t.Run(fmt.Sprintf("test_%s", path), func(t *testing.T) {
 			resp, err := http.Get(fmt.Sprintf("%s/%s", s.URL, path))
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 			require.NoError(t, err)
 			require.Equal(t, 200, resp.StatusCode)
 		})
@@ -58,6 +61,9 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 	defer s.Close()
 
 	resp, err := http.Get(fmt.Sprintf("%s/%s", s.URL, "/test"))
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	require.NoError(t, err)
 	require.Equal(t, 401, resp.StatusCode)
 }
@@ -90,6 +96,9 @@ func TestServerJWTAuthFunc(t *testing.T) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwtToken))
 
 	resp, err := (&http.Client{}).Do(req)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.StatusCode)
 }

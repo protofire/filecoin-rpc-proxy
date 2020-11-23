@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"testing"
 
+	"go.uber.org/goleak"
+
 	"github.com/protofire/filecoin-rpc-proxy/internal/testhelpers"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
@@ -24,6 +26,7 @@ const method = "test"
 
 func TestMain(t *testing.M) {
 	logger.InitDefaultLogger()
+	goleak.VerifyTestMain(t)
 	os.Exit(t.Run())
 }
 
