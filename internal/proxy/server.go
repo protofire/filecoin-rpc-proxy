@@ -95,7 +95,7 @@ func (p *Server) StartHTTPServer(h http.Handler) *http.Server {
 	}
 
 	go func() {
-		p.logger.Infof("Listening on %s", p.host)
+		p.logger.Infof("Listening on %s:%d", p.host, p.port)
 		if err := server.ListenAndServe(); err != nil {
 			p.logger.Infof("Listening status: %v", err)
 		}
