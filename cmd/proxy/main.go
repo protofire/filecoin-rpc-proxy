@@ -9,21 +9,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/protofire/filecoin-rpc-proxy/internal/updater"
-
 	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
-	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
-
-	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
-
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
+	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
+	"github.com/protofire/filecoin-rpc-proxy/internal/matcher"
+	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
+	"github.com/protofire/filecoin-rpc-proxy/internal/proxy"
+	"github.com/protofire/filecoin-rpc-proxy/internal/updater"
 	"github.com/protofire/filecoin-rpc-proxy/internal/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -122,36 +116,54 @@ func prepareCliApp() *cli.App {
 	app.EnableBashCompletion = true
 	app.Action = startCommand
 	app.Description = `
-   Default config file is: ~/proxy.yaml
-   Yaml format examples:
+	Default config file is: ~/proxy.yaml
+	Yaml format examples:
 
-   ---
-   proxy_url: http://test.com
-   port: 8080
-   cache_methods:
-   - name: method
-     cache_by_params: true
-     params_for_request:
-       - 1
-       - one
-       - two
-     params_in_cache_by_id:
-       - 1
-       - 2
-
-   ---
-   proxy_url: http://test.com
-   port: 8080
-   cache_methods:
-   - name: method
-     cache_by_params: true
-     params_for_request:
-       - 1
-       - one
-       - two
-     params_in_cache_by_name:
-       - name1
-       - name2
+	---
+	proxy_url: https://node.glif.io/space06/lotus/rpc/v0
+	jwt_secret: X
+	jwt_secret_base64: X
+	jwt_alg: HS256
+	jwt_permissions:
+	  - read
+	port: 8080
+	host: 0.0.0.0
+	update_user_cache_period: 3600
+	update_custom_cache_period: 600
+	log_level: INFO
+	requests_batch_size: 1
+	requests_concurrency: 5
+	debug_http_request: true
+	debug_http_response: false
+	shutdown_timeout: 15
+	cache_methods:
+	  - name: Filecoin.ChainGetTipSetByHeight
+		kind: regular
+		enabled: true
+		cache_by_params: true
+		params_in_cache_by_id:
+		  - 0
+	  - name: Filecoin.ClientQueryAsk
+		kind: regular
+		enabled: true
+		cache_by_params: true
+		params_in_cache_by_id:
+		  - 0
+		  - 1
+	  - name: Filecoin.StateCirculatingSupply
+		kind: custom
+		enabled: true
+		no_update_cache: true
+		cache_by_params: true
+		params_for_request:
+		  - []
+	  - name: Filecoin.StateMarketDeals
+		kind: custom
+		enabled: true
+		no_store_cache: true
+		cache_by_params: true
+		params_for_request:
+		  - []
    `
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
