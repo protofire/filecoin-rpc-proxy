@@ -24,6 +24,7 @@ func PrepareRoutes(c *config.Config, log *logrus.Entry, server *Server) *chi.Mux
 	r.HandleFunc("/healthz", server.HealthFunc)
 	r.HandleFunc("/ready", server.ReadyFunc)
 	r.Handle("/metrics", promhttp.Handler())
+	r.Mount("/debug", middleware.Profiler())
 	r.Group(func(r chi.Router) {
 		r.Use(jwtauth.Verifier(tokenAuth))
 		r.Use(Authenticator)
