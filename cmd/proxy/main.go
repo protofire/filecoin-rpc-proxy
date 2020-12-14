@@ -53,34 +53,51 @@ func startCommand(c *cli.Context) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
+	ctx, done := context.WithCancel(context.Background())
+
+	cacheImpl, err := cache.FromConfig(ctx, conf)
+	if err != nil {
+		done()
+		return err
+	}
+
 	cacher := proxy.NewResponseCache(
-		cache.NewMemoryCacheFromConfig(conf),
+		cacheImpl,
 		matcher.FromConfig(conf),
 	)
 	transportImp := proxy.NewTransport(cacher, log, conf.DebugHTTPRequest, conf.DebugHTTPResponse)
 
 	updaterImp, err := updater.FromConfig(conf, cacher, log)
 	if err != nil {
+		done()
 		return err
 	}
 
 	server, err := proxy.FromConfigWithTransport(conf, log, transportImp)
 	if err != nil {
+		done()
 		return err
 	}
+
+	defer func() {
+		done()
+		_ = server.Close()
+	}()
 
 	metrics.Register()
 
 	handler := proxy.PrepareRoutes(conf, log, server)
 	s := server.StartHTTPServer(handler)
 
-	ctx, done := context.WithCancel(context.Background())
 	go updaterImp.StartMethodUpdater(ctx, conf.UpdateCustomCachePeriod)
 	go updaterImp.StartCacheUpdater(ctx, conf.UpdateUserCachePeriod)
 
 	sig := <-stop
 	log.Infof("Caught sig: %+v. Waiting process is being stopped...", sig)
 	done()
+	if err := cacheImpl.Close(); err != nil {
+		log.Error(err)
+	}
 
 	ctxUpdater, cancelUpdater := context.WithTimeout(context.Background(), time.Duration(conf.ShutdownTimeout)*time.Second)
 	defer cancelUpdater()
@@ -172,7 +189,7 @@ func prepareCliApp() *cli.App {
 			EnvVars:  []string{"RPC_PROXY_CONFIG_FILE"},
 			Value:    getDefaultConfigFilePath(),
 			Required: false,
-			Usage:    "Config file. yaml format",
+			Usage:    "RedisConfig file. yaml format",
 		},
 	}
 

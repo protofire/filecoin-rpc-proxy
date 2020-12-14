@@ -10,22 +10,26 @@ import (
 )
 
 type MethodType string
+type CacheStorage string
 
 const (
 	// in seconds
-	DefaultCacheCleanupInterval            = -1
-	DefaultCacheExpiration                 = 0
-	defaultLogLevel                        = "INFO"
-	defaultPort                            = 8080
-	defaultHost                            = "0.0.0.0"
-	defaultJWTAlgorithm                    = "HS256"
-	defaultSystemCachePeriod               = 600
-	defaultUserCachePeriod                 = 3600
-	defaultRequestsBatchSize               = 5
-	defaultRequestsConcurrency             = 10
-	defaultShutdownTimeout                 = 20
-	CustomMethod                MethodType = "custom"
-	RegularMethod               MethodType = "regular"
+	DefaultCacheCleanupInterval              = -1
+	DefaultCacheExpiration                   = 0
+	defaultLogLevel                          = "INFO"
+	defaultPort                              = 8080
+	defaultHost                              = "0.0.0.0"
+	defaultJWTAlgorithm                      = "HS256"
+	defaultSystemCachePeriod                 = 600
+	defaultUserCachePeriod                   = 3600
+	defaultRequestsBatchSize                 = 5
+	defaultRequestsConcurrency               = 10
+	defaultShutdownTimeout                   = 20
+	CustomMethod                MethodType   = "custom"
+	RegularMethod               MethodType   = "regular"
+	MemoryCacheStorage          CacheStorage = "memory"
+	RedisCacheStorage           CacheStorage = "redis"
+	RedisPoolSize               int          = 10
 )
 
 var (
@@ -46,6 +50,23 @@ func (t MethodType) Valid() error {
 		return nil
 	default:
 		return fmt.Errorf("unknown method type: %s", t)
+	}
+}
+
+func (c CacheStorage) IsMemory() bool {
+	return c == MemoryCacheStorage
+}
+
+func (c CacheStorage) IsRedis() bool {
+	return c == RedisCacheStorage
+}
+
+func (c CacheStorage) Valid() error {
+	switch c {
+	case MemoryCacheStorage, RedisCacheStorage:
+		return nil
+	default:
+		return fmt.Errorf("unknown cache storage: %s", c)
 	}
 }
 
@@ -90,9 +111,20 @@ func (c *CacheMethod) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-type CacheSettings struct {
+type MemoryCacheSettings struct {
 	DefaultExpiration int `yaml:"expiration,omitempty"`
 	CleanupInterval   int `yaml:"cleanup_interval,omitempty"`
+}
+
+type RedisCacheSettings struct {
+	URI      string `yaml:"uri,omitempty"`
+	PoolSize int    `yaml:"pool_size,omitempty"`
+}
+
+type CacheSettings struct {
+	Storage CacheStorage        `yaml:"storage,omitempty"`
+	Memory  MemoryCacheSettings `yaml:"memory,omitempty"`
+	Redis   RedisCacheSettings  `yaml:"redis,omitempty"`
 }
 
 type Config struct {
@@ -134,12 +166,6 @@ func New(reader io.Reader) (*Config, error) {
 }
 
 func (c *Config) Init() {
-	if c.CacheSettings.CleanupInterval == 0 {
-		c.CacheSettings.CleanupInterval = DefaultCacheCleanupInterval
-	}
-	if c.CacheSettings.DefaultExpiration == 0 {
-		c.CacheSettings.DefaultExpiration = DefaultCacheExpiration
-	}
 	if c.LogLevel == "" {
 		c.LogLevel = defaultLogLevel
 	}
@@ -173,6 +199,18 @@ func (c *Config) Init() {
 	if c.ShutdownTimeout == 0 {
 		c.ShutdownTimeout = defaultShutdownTimeout
 	}
+	if c.CacheSettings.Storage == "" {
+		c.CacheSettings.Storage = MemoryCacheStorage
+	}
+	if c.CacheSettings.Redis.PoolSize == 0 {
+		c.CacheSettings.Redis.PoolSize = RedisPoolSize
+	}
+	if c.CacheSettings.Memory.CleanupInterval == 0 {
+		c.CacheSettings.Memory.CleanupInterval = DefaultCacheCleanupInterval
+	}
+	if c.CacheSettings.Memory.DefaultExpiration == 0 {
+		c.CacheSettings.Memory.DefaultExpiration = DefaultCacheExpiration
+	}
 	for idx := range c.CacheMethods {
 		method := c.CacheMethods[idx]
 		if method.Kind == nil {
@@ -199,6 +237,12 @@ func (c *Config) Validate() error {
 		if method.Kind.IsRegular() && method.ParamsForRequest != nil {
 			return fmt.Errorf("regular method type should not have been set with params_for_request")
 		}
+	}
+	if err := c.CacheSettings.Storage.Valid(); err != nil {
+		return err
+	}
+	if c.CacheSettings.Storage.IsRedis() && c.CacheSettings.Redis.URI == "" {
+		return fmt.Errorf("URI is required parameter for redis cache")
 	}
 	if c.JWTSecret == "" && c.JWTSecretBase64 == "" {
 		return fmt.Errorf("jwt secret is mandatory parameter")

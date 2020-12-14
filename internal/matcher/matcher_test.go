@@ -13,7 +13,7 @@ import (
 
 const testMethod = "test"
 
-func TestMain(t *testing.M) {
+func TestMain(t *testing.M) { // nolint
 	logger.InitDefaultLogger()
 	goleak.VerifyTestMain(t)
 	os.Exit(t.Run())

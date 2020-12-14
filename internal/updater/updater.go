@@ -140,15 +140,17 @@ func (u *Updater) methodRequests() requests.RPCRequests {
 func (u *Updater) cacheRequests() requests.RPCRequests {
 	reqs := requests.RPCRequests{}
 	counter := float64(1)
-	for _, item := range u.cacher.Cacher().Requests() {
-		req, ok := item.(requests.RPCRequest)
-		if ok {
-			if !u.cacher.Matcher().IsUpdatable(req.Method) {
-				continue
-			}
-			req.ID = counter
-			reqs = append(reqs, req)
+	cacheReqs, err := u.cacher.Cacher().Requests()
+	if err != nil {
+		u.logger.Errorf("Cannot get cache requests: %v", err)
+		return reqs
+	}
+	for _, req := range cacheReqs {
+		if !u.cacher.Matcher().IsUpdatable(req.Method) {
+			continue
 		}
+		req.ID = counter
+		reqs = append(reqs, req)
 		counter++
 	}
 	return reqs

@@ -8,6 +8,11 @@ port: 8080
 host: 0.0.0.0
 update_user_cache_period: 3600
 update_custom_cache_period: 600
+cache_settings:
+  storage: memory
+  redis:
+    uri: redis://127.0.0.1:6379/0
+    pool_size: 5
 log_level: INFO
 requests_batch_size: 1
 requests_concurrency: 5

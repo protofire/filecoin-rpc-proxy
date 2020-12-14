@@ -74,17 +74,17 @@ type errResponse struct {
 
 type RPCRequest struct {
 	remoteAddr string
-	JSONRPC    string      `json:"jsonrpc"`
-	ID         interface{} `json:"id,omitempty"`
-	Method     string      `json:"method"`
-	Params     interface{} `json:"params,omitempty"`
+	JSONRPC    string      `json:"jsonrpc" bson:"jsonrpc"`
+	ID         interface{} `json:"id,omitempty" bson:"id,omitempty"`
+	Method     string      `json:"method" bson:"method"`
+	Params     interface{} `json:"params,omitempty" bson:"params,omitempty"`
 }
 
 type RPCResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      interface{} `json:"id,omitempty"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *rpcError   `json:"error,omitempty"`
+	JSONRPC string      `json:"jsonrpc" bson:"jsonrpc"`
+	ID      interface{} `json:"id,omitempty" bson:"id,omitempty"`
+	Result  interface{} `json:"result,omitempty" bson:"result,omitempty"`
+	Error   *rpcError   `json:"error,omitempty" bson:"error,omitempty"`
 }
 
 type rpcError struct {

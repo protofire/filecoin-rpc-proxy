@@ -1,7 +1,11 @@
 package cache
 
 import (
+	"context"
+	"fmt"
 	"time"
+
+	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 	"github.com/protofire/filecoin-rpc-proxy/internal/metrics"
@@ -18,16 +22,17 @@ func (e Error) Error() string {
 	return e.message
 }
 
-type value struct {
-	request  interface{}
-	response interface{}
+type cacheValue struct {
+	Request  requests.RPCRequest
+	Response requests.RPCResponse
 }
 
 // Cache ...
 type Cache interface {
-	Set(key string, request, response interface{}) error
-	Get(key string) (interface{}, error)
-	Requests() []interface{}
+	Set(key string, request requests.RPCRequest, response requests.RPCResponse) error
+	Get(key string) (requests.RPCResponse, error)
+	Requests() ([]requests.RPCRequest, error)
+	Close() error
 }
 
 // MemoryCache ...
@@ -35,31 +40,37 @@ type MemoryCache struct {
 	*cache.Cache
 }
 
-func (m *MemoryCache) Requests() []interface{} {
-	res := make([]interface{}, m.Cache.ItemCount())
+func (m *MemoryCache) Requests() ([]requests.RPCRequest, error) {
+	res := make([]requests.RPCRequest, m.Cache.ItemCount())
 	for _, item := range m.Cache.Items() {
-		res = append(res, item.Object.(value).request)
+		res = append(res, item.Object.(cacheValue).Request)
 	}
-	return res
+	return res, nil
 }
 
 // Set ...
-func (m *MemoryCache) Set(key string, request, response interface{}) error {
-	m.Cache.Set(key, value{
-		request:  request,
-		response: response,
+func (m *MemoryCache) Set(key string, request requests.RPCRequest, response requests.RPCResponse) error {
+	m.Cache.Set(key, cacheValue{
+		Request:  request,
+		Response: response,
 	}, 0)
 	metrics.SetCacheSize(int64(m.Cache.ItemCount()))
 	return nil
 }
 
 // Get ...
-func (m *MemoryCache) Get(key string) (interface{}, error) {
+func (m *MemoryCache) Get(key string) (requests.RPCResponse, error) {
 	val, ok := m.Cache.Get(key)
 	if ok {
-		return val.(value).response, nil
+		return val.(cacheValue).Response, nil
 	}
-	return nil, nil
+	return requests.RPCResponse{}, nil
+}
+
+// Close ...
+func (m *MemoryCache) Close() error {
+	m.Cache = nil
+	return nil
 }
 
 // NewMemoryCache initializes memory cache
@@ -78,11 +89,27 @@ func NewMemoryCacheDefault() *MemoryCache {
 }
 
 // NewMemoryCacheFromConfig initializes memory cache from config
-func NewMemoryCacheFromConfig(config *config.Config) *MemoryCache {
+func NewMemoryCacheFromConfig(config config.MemoryCacheSettings) *MemoryCache {
 	return &MemoryCache{
 		cache.New(
-			time.Duration(config.CacheSettings.DefaultExpiration)*time.Second,
-			time.Duration(config.CacheSettings.CleanupInterval)*time.Second,
+			time.Duration(config.DefaultExpiration)*time.Second,
+			time.Duration(config.CleanupInterval)*time.Second,
 		),
+	}
+}
+
+// FromConfig initializes cache from config
+func FromConfig(ctx context.Context, c *config.Config) (Cache, error) {
+	switch c.CacheSettings.Storage {
+	case config.MemoryCacheStorage:
+		return NewMemoryCacheFromConfig(c.CacheSettings.Memory), nil
+	case config.RedisCacheStorage:
+		client, err := NewRedisClient(ctx, c.CacheSettings.Redis)
+		if err != nil {
+			return nil, err
+		}
+		return client, nil
+	default:
+		return nil, fmt.Errorf("unknown cache storage type: %s", c.CacheSettings.Storage)
 	}
 }

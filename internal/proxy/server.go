@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -25,14 +26,18 @@ type Server struct {
 	*transport
 }
 
-func FromConfig(c *config.Config) (*Server, error) {
+func FromConfig(ctx context.Context, c *config.Config) (*Server, error) {
 	proxyURL, err := url.Parse(c.ProxyURL)
 	if err != nil {
 		return nil, err
 	}
 	log := logger.InitLogger(c.LogLevel, c.LogPrettyPrint)
+	cacheImpl, err := cache.FromConfig(ctx, c)
+	if err != nil {
+		return nil, err
+	}
 	cacher := NewResponseCache(
-		cache.NewMemoryCacheFromConfig(c),
+		cacheImpl,
 		matcher.FromConfig(c),
 	)
 	transport := NewTransport(cacher, log, c.DebugHTTPRequest, c.DebugHTTPResponse)

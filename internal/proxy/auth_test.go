@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,8 @@ const testMethod = "test"
 func TestServerAuxiliaryFunc(t *testing.T) {
 	conf, err := testhelpers.GetConfig("http://test.com", testMethod)
 	require.NoError(t, err)
-	server, err := FromConfig(conf)
+	ctx := context.Background()
+	server, err := FromConfig(ctx, conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
 
@@ -53,7 +55,8 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 
 	conf, err := testhelpers.GetConfig(backend.URL, testMethod)
 	require.NoError(t, err)
-	server, err := FromConfig(conf)
+	ctx := context.Background()
+	server, err := FromConfig(ctx, conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
 
@@ -83,7 +86,8 @@ func TestServerJWTAuthFunc(t *testing.T) {
 
 	conf.ProxyURL = backend.URL
 
-	server, err := FromConfig(conf)
+	ctx := context.Background()
+	server, err := FromConfig(ctx, conf)
 	require.NoError(t, err)
 	handler := PrepareRoutes(conf, logger.Log, server)
 	frontend := httptest.NewServer(handler)

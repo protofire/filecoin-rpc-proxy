@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -49,7 +50,8 @@ func TestRequest(t *testing.T) {
 
 	conf, err := testhelpers.GetConfig(backend.URL, method)
 	require.NoError(t, err)
-	server, err := FromConfig(conf)
+	ctx := context.Background()
+	server, err := FromConfig(ctx, conf)
 	require.NoError(t, err)
 
 	handler := PrepareRoutes(conf, logger.Log, server)

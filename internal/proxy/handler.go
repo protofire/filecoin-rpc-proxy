@@ -162,3 +162,7 @@ func (t *transport) fromCache(reqs requests.RPCRequests) (requests.RPCResponses,
 	}
 	return results, nil
 }
+
+func (t *transport) Close() error {
+	return t.cacher.Cacher().Close()
+}

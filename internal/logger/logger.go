@@ -48,5 +48,9 @@ func InitLogger(logLevel string, logPrettyPrint bool) *logrus.Entry {
 
 // InitDefaultLogger initializes logger instance
 func InitDefaultLogger() *logrus.Entry {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel != "" {
+		defaultLogger = logLevel
+	}
 	return InitLogger(defaultLogger, true)
 }

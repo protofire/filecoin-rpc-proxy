@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(t *testing.M) {
+func TestMain(t *testing.M) { // nolint
 	logger.InitDefaultLogger()
 	goleak.VerifyTestMain(t)
 	os.Exit(t.Run())
@@ -75,7 +75,7 @@ func TestMethodsUpdater(t *testing.T) {
 	conf.CacheMethods[0].ParamsForRequest = params
 
 	cacher := proxy.NewResponseCache(
-		cache.NewMemoryCacheFromConfig(conf),
+		cache.NewMemoryCacheFromConfig(conf.CacheSettings.Memory),
 		matcher.FromConfig(conf),
 	)
 	updaterImp, err := FromConfig(conf, cacher, logger.Log)
@@ -144,7 +144,7 @@ func TestCacheUpdater(t *testing.T) {
 	require.NoError(t, err)
 
 	cacher := proxy.NewResponseCache(
-		cache.NewMemoryCacheFromConfig(conf),
+		cache.NewMemoryCacheFromConfig(conf.CacheSettings.Memory),
 		matcher.FromConfig(conf),
 	)
 	updaterImp, err := FromConfig(conf, cacher, logger.Log)
@@ -225,7 +225,7 @@ func TestMethodsUpdaterConcurrency(t *testing.T) {
 	require.Len(t, conf.CacheMethods, n)
 
 	cacher := proxy.NewResponseCache(
-		cache.NewMemoryCacheFromConfig(conf),
+		cache.NewMemoryCacheFromConfig(conf.CacheSettings.Memory),
 		matcher.FromConfig(conf),
 	)
 	updaterImp, err := FromConfig(conf, cacher, logger.Log)
