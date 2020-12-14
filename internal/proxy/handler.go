@@ -71,12 +71,12 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	inCacheRequestsCount := len(parsedRequests) - len(proxyRequests)
+	metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 
 	var proxyBody []byte
 	switch len(proxyRequests) {
 	case 0:
 		log.Debug("returning proxy response...")
-		metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 		return preparedResponses.Response()
 	case 1:
 		proxyBody, err = json.Marshal(proxyRequests[0])
@@ -126,8 +126,6 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 		preparedResponses[proxyRequestIdx[idx]] = response
 	}
-
-	metrics.SetRequestsCachedCounter(inCacheRequestsCount)
 
 	resp, err := preparedResponses.Response()
 	if err != nil {
