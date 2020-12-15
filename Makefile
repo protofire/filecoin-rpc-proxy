@@ -23,6 +23,7 @@ CMD_PACKAGE 		:= ./cmd/proxy
 NAME 				?= proxy
 BINARY 				?= ./${NAME}
 TAG					?= ${VERSION}
+LOG_LEVEL			?= ${LOG_LEVEL}
 
 $(GOBIN):
 	echo "create gobin"
@@ -42,10 +43,12 @@ install: clean check test
 	$(CMD_PACKAGE)
 
 test: unit
+clean_cache:
+	@go clean -testcache
 
 check: work fmt vet goimports golangci
-unit: work
-	go test -tags=unit $(TEST_ARGS) ./...
+unit: clean_cache work
+	@LOG_LEVEL=$(LOG_LEVEL) go test -tags=unit $(TEST_ARGS) ./...
 
 fmt:
 	go fmt ./...
