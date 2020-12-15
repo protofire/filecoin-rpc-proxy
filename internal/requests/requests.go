@@ -33,6 +33,16 @@ func (r RPCRequests) FindByID(id interface{}) (RPCRequest, bool) {
 	return RPCRequest{}, false
 }
 
+func (r RPCRequests) FindByPositions(ids ...int) RPCRequests {
+	var res RPCRequests
+	for _, idx := range ids {
+		if idx < len(r) && idx >= 0 {
+			res = append(res, r[idx])
+		}
+	}
+	return res
+}
+
 func (r RPCRequests) IsEmpty() bool {
 	return len(r) == 0
 }
@@ -45,14 +55,18 @@ func (r RPCRequests) Methods() []string {
 	return methods
 }
 
-func (r RPCResponses) BlankResponses() []int {
-	var results []int
+// SplitEmptyResponsePositions splits responses on non-empty / empty subsets by position
+func (r RPCResponses) SplitEmptyResponsePositions() ([]int, []int) {
+	var empty []int
+	var nonEmpty []int
 	for idx, response := range r {
 		if response.IsEmpty() {
-			results = append(results, idx)
+			empty = append(empty, idx)
+		} else {
+			nonEmpty = append(nonEmpty, idx)
 		}
 	}
-	return results
+	return nonEmpty, empty
 }
 
 func (r RPCResponses) Response() (*http.Response, error) {

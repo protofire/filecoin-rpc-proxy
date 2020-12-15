@@ -55,7 +55,11 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 		return resp, nil
 	}
-	log = log.WithField("methods", parsedRequests.Methods())
+	methods := parsedRequests.Methods()
+	log = log.WithField("methods", methods)
+	for _, method := range methods {
+		metrics.SetRequestsCounterByMethod(method)
+	}
 
 	preparedResponses, err := t.fromCache(parsedRequests)
 	if err != nil {
@@ -63,15 +67,17 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		preparedResponses = make(requests.RPCResponses, len(parsedRequests))
 	}
 
-	proxyRequestIdx := preparedResponses.BlankResponses()
-	// build requests to proxy
-	var proxyRequests requests.RPCRequests
-	for _, idx := range proxyRequestIdx {
-		proxyRequests = append(proxyRequests, parsedRequests[idx])
-	}
+	cachedRequestIdx, proxyRequestIdx := preparedResponses.SplitEmptyResponsePositions()
 
-	inCacheRequestsCount := len(parsedRequests) - len(proxyRequests)
-	metrics.SetRequestsCachedCounter(inCacheRequestsCount)
+	// build requests to proxy
+	proxyRequests := parsedRequests.FindByPositions(proxyRequestIdx...)
+	cachedRequests := parsedRequests.FindByPositions(cachedRequestIdx...)
+	cachedMethods := cachedRequests.Methods()
+
+	metrics.SetRequestsCachedCounter(len(cachedMethods))
+	for _, method := range cachedMethods {
+		metrics.SetRequestsCachedCounterByMethod(method)
+	}
 
 	var proxyBody []byte
 	switch len(proxyRequests) {
@@ -98,19 +104,19 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	elapsed := time.Since(start)
 	metrics.SetRequestDuration(elapsed.Milliseconds())
 	if err != nil {
-		metrics.SetRequestsErrorCounter()
+		metrics.SetRequestsErrorCounterByMethods(methods...)
 		return res, err
 	}
 	if t.debugHTTPResponse {
 		requests.DebugResponse(res, log)
 	}
 	// no need cache
-	if !t.isCacheableRequests(parsedRequests) && inCacheRequestsCount == 0 {
+	if !t.isCacheableRequests(parsedRequests) && len(cachedMethods) == 0 {
 		return res, nil
 	}
 	responses, body, err := requests.ParseResponses(res)
 	if err != nil {
-		metrics.SetRequestsErrorCounter()
+		metrics.SetRequestsErrorCounterByMethods(methods...)
 		return requests.JSONRPCErrorResponse(res.StatusCode, body)
 	}
 
