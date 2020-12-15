@@ -4,23 +4,31 @@ jwt_secret_base64: X
 jwt_alg: HS256
 jwt_permissions:
   - read
+# listening port
 port: 8080
+# listening address
 host: 0.0.0.0
+# update cache period for user's requests
 update_user_cache_period: 3600
+# update cache period for application initialized requests
 update_custom_cache_period: 600
 cache_settings:
+  # available: memory|redis
   storage: memory
   redis:
     uri: redis://127.0.0.1:6379/0
     pool_size: 5
 log_level: INFO
+# batch size for RPC request. Use 1 for now
 requests_batch_size: 1
+# concurrency for update cache requests
 requests_concurrency: 5
 debug_http_request: true
 debug_http_response: false
 shutdown_timeout: 15
 cache_methods:
   - name: Filecoin.ChainGetTipSetByHeight
+    # will cache user's requests for the method
     kind: regular
     enabled: true
     cache_by_params: true
@@ -34,8 +42,10 @@ cache_methods:
       - 0
       - 1
   - name: Filecoin.StateCirculatingSupply
+    # application will initialize this requests itself and store response in cache as also serve users initialized requests
     kind: custom
     enabled: true
+    # do not update cache values for this method
     no_update_cache: true
     cache_by_params: true
     params_for_request:
@@ -43,6 +53,7 @@ cache_methods:
   - name: Filecoin.StateMarketDeals
     kind: custom
     enabled: true
+    # do not store user's initialized requests in cache
     no_store_cache: true
     cache_by_params: true
     params_for_request:
