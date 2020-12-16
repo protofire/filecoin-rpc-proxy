@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/signal"
@@ -32,6 +33,14 @@ func getDefaultConfigFilePath() string {
 		}
 	}
 	return path.Join(home, defaultConfigFileName)
+}
+
+func getConfigExample() (string, error) {
+	c, err := base64.StdEncoding.DecodeString(ConfigExample)
+	if err != nil {
+		return "", err
+	}
+	return string(c), nil
 }
 
 func startCommand(c *cli.Context) error {
@@ -119,6 +128,10 @@ func startCommand(c *cli.Context) error {
 }
 
 func prepareCliApp() *cli.App {
+	configExample, err := getConfigExample()
+	if err != nil {
+		configExample = ""
+	}
 	app := cli.NewApp()
 	app.Version = Version
 	app.HideHelp = false
@@ -130,59 +143,17 @@ func prepareCliApp() *cli.App {
 	app.Usage = "JSON PRC cached proxy"
 	app.EnableBashCompletion = true
 	app.Action = startCommand
-	app.Description = `
-	Default config file is: ~/config.yaml
-	Yaml format examples:
+	app.Description = fmt.Sprintf(`
+Default configExample file is: ~/configExample.yaml
+Config file example:
 
-	---
-	proxy_url: https://node.glif.io/space06/lotus/rpc/v0
-	jwt_secret: X
-	jwt_secret_base64: X
-	jwt_alg: HS256
-	jwt_permissions:
-	  - read
-	port: 8080
-	host: 0.0.0.0
-	update_user_cache_period: 3600
-	update_custom_cache_period: 600
-	log_level: INFO
-	requests_batch_size: 1
-	requests_concurrency: 5
-	debug_http_request: true
-	debug_http_response: false
-	shutdown_timeout: 15
-	cache_methods:
-	  - name: Filecoin.ChainGetTipSetByHeight
-		kind: regular
-		enabled: true
-		cache_by_params: true
-		params_in_cache_by_id:
-		  - 0
-	  - name: Filecoin.ClientQueryAsk
-		kind: regular
-		enabled: true
-		cache_by_params: true
-		params_in_cache_by_id:
-		  - 0
-		  - 1
-	  - name: Filecoin.StateCirculatingSupply
-		kind: custom
-		enabled: true
-		no_update_cache: true
-		cache_by_params: true
-		params_for_request:
-		  - []
-	  - name: Filecoin.StateMarketDeals
-		kind: custom
-		enabled: true
-		no_store_cache: true
-		cache_by_params: true
-		params_for_request:
-		  - []
-   `
+---
+%s`,
+		configExample,
+	)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:     "config",
+			Name:     "configExample",
 			Aliases:  []string{"c"},
 			EnvVars:  []string{"RPC_PROXY_CONFIG_FILE"},
 			Value:    getDefaultConfigFilePath(),

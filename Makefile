@@ -17,8 +17,9 @@ TEMP_DIR			:= $(shell mktemp -d)
 GOOS				?= $(shell go env GOOS)
 DEFAULT_VERSION 	:= 0.0.1
 VERSION				?= $(shell git describe --exact-match --tags 2>/dev/null || echo ${DEFAULT_VERSION})
+CONFIG_EXAMPLE		?= $(shell cat config.example.yaml | base64 | tr -d '\n' || echo "")
 GOARCH				:= amd64
-LDFLAGS				:= "-w -s -X 'main.Version=${VERSION}'"
+LDFLAGS				:= "-w -s -X 'main.Version=${VERSION}' -X 'main.ConfigExample=${CONFIG_EXAMPLE}'"
 CMD_PACKAGE 		:= ./cmd/proxy
 NAME 				?= proxy
 BINARY 				?= ./${NAME}
