@@ -54,7 +54,7 @@ fmt:
 	go fmt ./...
 
 docker:
-	docker build -t ${NAME}:${TAG} .
+	docker build --network host -t ${NAME}:${TAG} .
 
 goimports:
 ifndef HAS_GOIMPORTS
