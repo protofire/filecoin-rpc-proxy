@@ -21,7 +21,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var defaultConfigFileName = "proxy.yaml"
+var defaultConfigFileName = "config.yaml"
 
 func getDefaultConfigFilePath() string {
 	home, err := utils.GetUserHome()
@@ -131,7 +131,7 @@ func prepareCliApp() *cli.App {
 	app.EnableBashCompletion = true
 	app.Action = startCommand
 	app.Description = `
-	Default config file is: ~/proxy.yaml
+	Default config file is: ~/config.yaml
 	Yaml format examples:
 
 	---
@@ -187,7 +187,7 @@ func prepareCliApp() *cli.App {
 			EnvVars:  []string{"RPC_PROXY_CONFIG_FILE"},
 			Value:    getDefaultConfigFilePath(),
 			Required: false,
-			Usage:    "RedisConfig file. yaml format",
+			Usage:    "Config file. yaml format",
 		},
 	}
 
