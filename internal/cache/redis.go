@@ -90,12 +90,8 @@ func (client *Client) Requests() ([]requests.RPCRequest, error) {
 
 // Close closes redis client
 func (client *Client) Close() error {
-	if client.Client != nil {
-		err := client.Client.Close()
-		client.Client = nil
-		if err != nil {
-			return fmt.Errorf("cannot close redis client %w", err)
-		}
+	if err := client.Client.Close(); err != nil {
+		return fmt.Errorf("cannot close redis client %w", err)
 	}
 	return nil
 }

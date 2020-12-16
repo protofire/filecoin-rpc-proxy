@@ -230,7 +230,9 @@ func TestTransportWithRedisCache(t *testing.T) {
 
 	defer func() {
 		done()
-		_ = server.Close()
+		if err := server.Close(); err != nil {
+			logger.Log.Error(err)
+		}
 	}()
 
 	frontend := httptest.NewServer(http.HandlerFunc(server.RPCProxy))
