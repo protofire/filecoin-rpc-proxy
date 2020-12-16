@@ -24,7 +24,6 @@ CMD_PACKAGE 		:= ./cmd/proxy
 NAME 				?= proxy
 BINARY 				?= ./${NAME}
 TAG					?= ${VERSION}
-LOG_LEVEL			?= ${LOG_LEVEL}
 
 $(GOBIN):
 	echo "create gobin"
