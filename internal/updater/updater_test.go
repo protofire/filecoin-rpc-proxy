@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"sync"
 	"testing"
 	"time"
-
-	"go.uber.org/goleak"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/config"
 
@@ -30,10 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(t *testing.M) { // nolint
+func TestMain(m *testing.M) { // nolint
 	logger.InitDefaultLogger()
-	goleak.VerifyTestMain(t)
-	os.Exit(t.Run())
 }
 
 const method = "test"
@@ -161,6 +156,86 @@ func TestCacheUpdater(t *testing.T) {
 	ctxStop, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	updaterImp.StopWithTimeout(ctxStop, 1)
 	defer cancel()
+
+	lock.Lock()
+	require.GreaterOrEqual(t, requestsCount, 1)
+	lock.Unlock()
+
+	cachedResp, err := updaterImp.cacher.GetResponseCache(request)
+	require.NoError(t, err)
+	require.False(t, cachedResp.IsEmpty())
+	require.True(t, utils.Equal(cachedResp.ID, response.ID))
+
+}
+
+func TestRedisCacheUpdater(t *testing.T) {
+
+	requestID := 1
+	result := float64(15)
+
+	var params interface{} = []interface{}{"1", "2"}
+	request := requests.RPCRequest{
+		Method:  method,
+		JSONRPC: "2.0",
+		ID:      requestID,
+		Params:  params,
+	}
+	response := requests.RPCResponse{
+		JSONRPC: "2.0",
+		ID:      requestID,
+		Result:  result,
+		Error:   nil,
+	}
+	responseJSON, err := json.Marshal(response)
+	require.NoError(t, err)
+
+	requestsCount := 0
+	lock := sync.Mutex{}
+
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		lock.Lock()
+		requestsCount++
+		lock.Unlock()
+		_, err := fmt.Fprint(w, string(responseJSON))
+		if err != nil {
+			logger.Log.Error(err)
+		}
+	}))
+	defer backend.Close()
+
+	conf, err := testhelpers.GetRedisConfig(backend.URL, testhelpers.RedisURI, method)
+	require.NoError(t, err)
+
+	ctx, cancelRedis := context.WithCancel(context.Background())
+	cacheImpl, err := cache.FromConfig(ctx, conf)
+	require.NoError(t, err)
+
+	cacher := proxy.NewResponseCache(cacheImpl, matcher.FromConfig(conf))
+	updaterImp, err := FromConfig(conf, cacher, logger.Log)
+	require.NoError(t, err)
+
+	err = updaterImp.cacher.SetResponseCache(request, response)
+	require.NoError(t, err)
+
+	go updaterImp.StartCacheUpdater(ctx, 1)
+	reqs := updaterImp.cacheRequests()
+	require.Len(t, reqs, 1)
+
+	ctxStop, cancel := context.WithTimeout(context.Background(), time.Millisecond*1000)
+	updaterImp.StopWithTimeout(ctxStop, 1)
+
+	defer func() {
+		cancelRedis()
+		cancel()
+		if err := cacheImpl.Clean(); err != nil {
+			logger.Log.Error(err)
+		}
+		if err := cacheImpl.Close(); err != nil {
+			logger.Log.Error(err)
+		}
+	}()
 
 	lock.Lock()
 	require.GreaterOrEqual(t, requestsCount, 1)

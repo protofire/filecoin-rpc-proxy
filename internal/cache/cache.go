@@ -33,6 +33,7 @@ type Cache interface {
 	Get(key string) (requests.RPCResponse, error)
 	Requests() ([]requests.RPCRequest, error)
 	Close() error
+	Clean() error
 }
 
 // MemoryCache ...
@@ -69,6 +70,12 @@ func (m *MemoryCache) Get(key string) (requests.RPCResponse, error) {
 
 // Close ...
 func (m *MemoryCache) Close() error {
+	m.Cache = nil
+	return nil
+}
+
+// Clean ...
+func (m *MemoryCache) Clean() error {
 	m.Cache = nil
 	return nil
 }

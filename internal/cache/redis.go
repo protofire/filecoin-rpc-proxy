@@ -49,8 +49,8 @@ func NewRedisClient(ctx context.Context, config config.RedisCacheSettings) (*Cli
 }
 
 func (client *Client) Get(key string) (requests.RPCResponse, error) {
-	data, err := client.Client.HGet(client.Context(), hashMapName, key).Bytes()
 	val := cacheValue{}
+	data, err := client.Client.HGet(client.Context(), hashMapName, key).Bytes()
 	if err != nil {
 		return val.Response, err
 	}
@@ -78,12 +78,12 @@ func (client *Client) Requests() ([]requests.RPCRequest, error) {
 		return nil, err
 	}
 	res := make([]requests.RPCRequest, len(data))
-	for _, value := range data {
+	for idx, value := range data {
 		item := cacheValue{}
-		if err := bson.Unmarshal([]byte(value), item); err != nil {
+		if err := bson.Unmarshal([]byte(value), &item); err != nil {
 			return nil, err
 		}
-		res = append(res, item.Request)
+		res[idx] = item.Request
 	}
 	return res, nil
 }
@@ -92,6 +92,14 @@ func (client *Client) Requests() ([]requests.RPCRequest, error) {
 func (client *Client) Close() error {
 	if err := client.Client.Close(); err != nil {
 		return fmt.Errorf("cannot close redis client %w", err)
+	}
+	return nil
+}
+
+// Clean cleans all cache
+func (client *Client) Clean() error {
+	if err := client.Client.FlushAll(client.Context()).Err(); err != nil {
+		return fmt.Errorf("cannot flush redis database %w", err)
 	}
 	return nil
 }

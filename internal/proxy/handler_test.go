@@ -6,24 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
 
-	"github.com/protofire/filecoin-rpc-proxy/internal/config"
-
-	"github.com/ory/dockertest/v3/docker"
-
-	"github.com/ory/dockertest/v3"
-
-	"go.uber.org/goleak"
-
 	"github.com/protofire/filecoin-rpc-proxy/internal/testhelpers"
 
-	"github.com/protofire/filecoin-rpc-proxy/internal/cache"
 	"github.com/protofire/filecoin-rpc-proxy/internal/requests"
 
 	"github.com/protofire/filecoin-rpc-proxy/internal/logger"
@@ -32,59 +21,10 @@ import (
 
 const (
 	method = "test"
-	host   = "127.0.0.1"
-	port   = "6379"
 )
 
-var redisURI = fmt.Sprintf("redis://%s:%s", host, port)
-
 func TestMain(m *testing.M) { // nolint
-	logger.InitDefaultLogger()
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		logger.Log.Fatalf("Could not connect to docker: %s", err)
-	}
-	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository:   "redis",
-		Tag:          "latest",
-		ExposedPorts: []string{port},
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			port: {{HostIP: host, HostPort: port}},
-		},
-	})
-
-	if err != nil {
-		log.Fatalf("Could not start resource: %s", err)
-	}
-	ctx := context.Background()
-	if err = pool.Retry(func() error {
-		var err error
-		c, err := cache.NewRedisClient(ctx, config.RedisCacheSettings{
-			URI: redisURI,
-		})
-		if err == nil {
-			_ = c.Close()
-		}
-		return err
-	}); err != nil {
-		log.Fatalf("Could not connect to redis: %s", err)
-	}
-
-	exitCode := m.Run()
-
-	if err := pool.Purge(resource); err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
-	}
-
-	if exitCode == 0 {
-		if err := goleak.Find(); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "goleak: Errors on successful test run: %v\n", err)
-			exitCode = 1
-		}
-	}
-
-	os.Exit(exitCode)
-
+	testhelpers.TestMain(m)
 }
 
 func TestRPCResponsesUnmarshal(t *testing.T) {
@@ -222,7 +162,7 @@ func TestTransportWithRedisCache(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	conf, err := testhelpers.GetRedisConfig(backend.URL, redisURI, method)
+	conf, err := testhelpers.GetRedisConfig(backend.URL, testhelpers.RedisURI, method)
 	require.NoError(t, err)
 	ctx, done := context.WithCancel(context.Background())
 	server, err := FromConfig(ctx, conf)
@@ -230,6 +170,9 @@ func TestTransportWithRedisCache(t *testing.T) {
 
 	defer func() {
 		done()
+		if err := server.cacher.Cacher().Clean(); err != nil {
+			logger.Log.Error(err)
+		}
 		if err := server.Close(); err != nil {
 			logger.Log.Error(err)
 		}
