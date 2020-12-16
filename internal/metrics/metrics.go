@@ -96,6 +96,14 @@ func SetRequestsCachedCounterByMethod(method string) {
 	cachedProxyRequestsByMethod.With(prometheus.Labels{"method": method}).Inc()
 }
 
+// SetRequestsCachedCounterByMethods ...
+func SetRequestsCachedCounterByMethods(methods ...string) {
+	SetRequestsCachedCounter(len(methods))
+	for _, method := range methods {
+		SetRequestsCachedCounterByMethod(method)
+	}
+}
+
 // Register ...
 func Register() {
 	prometheus.MustRegister(proxyRequestDuration)

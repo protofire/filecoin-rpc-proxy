@@ -74,9 +74,8 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	cachedRequests := parsedRequests.FindByPositions(cachedRequestIdx...)
 	cachedMethods := cachedRequests.Methods()
 
-	metrics.SetRequestsCachedCounter(len(cachedMethods))
-	for _, method := range cachedMethods {
-		metrics.SetRequestsCachedCounterByMethod(method)
+	if len(cachedRequests) > 0 {
+		metrics.SetRequestsCachedCounterByMethods(cachedMethods...)
 	}
 
 	var proxyBody []byte
@@ -110,7 +109,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.debugHTTPResponse {
 		requests.DebugResponse(res, log)
 	}
-	// no need cache
+	// no need cache. Return without parsing response
 	if !t.isCacheableRequests(parsedRequests) && len(cachedMethods) == 0 {
 		return res, nil
 	}
