@@ -72,7 +72,8 @@ func TestServerJWTAuthFunc401(t *testing.T) {
 }
 
 func TestServerJWTAuthFunc(t *testing.T) {
-	conf, err := testhelpers.GetConfig("", testMethod)
+
+	conf, err := testhelpers.GetConfig("http://test.com", testMethod)
 	require.NoError(t, err)
 	jwtToken, err := auth.NewJWT(conf.JWT(), conf.JWTAlgorithm, conf.JWTPermissions)
 	require.NoError(t, err)

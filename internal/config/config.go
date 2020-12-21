@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -148,6 +149,24 @@ type Config struct {
 	DebugHTTPResponse       bool          `yaml:"debug_http_response,omitempty"`
 }
 
+type CmdLineParams struct {
+	JWTSecret string
+	ProxyURL  string
+	RedisURI  string
+}
+
+func (c *Config) SetParams(params CmdLineParams) {
+	if params.JWTSecret != "" {
+		c.JWTSecret = params.JWTSecret
+	}
+	if params.ProxyURL != "" {
+		c.ProxyURL = params.ProxyURL
+	}
+	if params.RedisURI != "" {
+		c.CacheSettings.Redis.URI = params.RedisURI
+	}
+}
+
 func (c *Config) JWT() []byte {
 	if c.JWTSecret != "" {
 		return []byte(c.JWTSecret)
@@ -162,7 +181,7 @@ func New(reader io.Reader) (*Config, error) {
 		return nil, err
 	}
 	c.Init()
-	return c, c.Validate()
+	return c, nil
 }
 
 func (c *Config) Init() {
@@ -238,11 +257,22 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("regular method type should not have been set with params_for_request")
 		}
 	}
+	if c.ProxyURL == "" {
+		return fmt.Errorf("proxy_url is mandatory parameter")
+	}
+	if _, err := url.Parse(c.ProxyURL); err != nil {
+		return fmt.Errorf("cannot parse proxy_url: %w", err)
+	}
 	if err := c.CacheSettings.Storage.Valid(); err != nil {
 		return err
 	}
-	if c.CacheSettings.Storage.IsRedis() && c.CacheSettings.Redis.URI == "" {
-		return fmt.Errorf("URI is required parameter for redis cache")
+	if c.CacheSettings.Storage.IsRedis() {
+		if c.CacheSettings.Redis.URI == "" {
+			return fmt.Errorf("uri is required parameter for redis cache")
+		}
+		if _, err := url.Parse(c.CacheSettings.Redis.URI); err != nil {
+			return fmt.Errorf("cannot parse redis url: %w", err)
+		}
 	}
 	if c.JWTSecret == "" && c.JWTSecretBase64 == "" {
 		return fmt.Errorf("jwt secret is mandatory parameter")
@@ -250,10 +280,15 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func FromFile(filename string) (*Config, error) {
+func FromFile(filename string, params CmdLineParams) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	return New(file)
+	conf, err := New(file)
+	if err != nil {
+		return nil, err
+	}
+	conf.SetParams(params)
+	return conf, conf.Validate()
 }

@@ -51,9 +51,21 @@ func startCommand(c *cli.Context) error {
 	if !utils.FileExists(configFile) {
 		return fmt.Errorf("cannot find conf file file: %s", configFile)
 	}
-	conf, err := config.FromFile(configFile)
+	conf, err := config.FromFile(configFile, config.CmdLineParams{
+		JWTSecret: c.String("jwt-secret"),
+		ProxyURL:  c.String("proxy-url"),
+		RedisURI:  c.String("redis-uri"),
+	})
 	if err != nil {
 		return err
+	}
+	jwtSecret := c.String("jwt-secret")
+	proxyURL := c.String("proxy-url")
+	if jwtSecret != "" {
+		conf.JWTSecretBase64 = jwtSecret
+	}
+	if proxyURL != "" {
+		conf.ProxyURL = proxyURL
 	}
 	log := logger.InitLogger(conf.LogLevel, conf.LogPrettyPrint)
 
@@ -144,7 +156,7 @@ func prepareCliApp() *cli.App {
 	app.EnableBashCompletion = true
 	app.Action = startCommand
 	app.Description = fmt.Sprintf(`
-Default configExample file is: ~/configExample.yaml
+Default config file is: ~/config.yaml
 Config file example:
 
 ---
@@ -153,12 +165,33 @@ Config file example:
 	)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:     "configExample",
+			Name:     "config",
 			Aliases:  []string{"c"},
-			EnvVars:  []string{"RPC_PROXY_CONFIG_FILE"},
+			EnvVars:  []string{"PROXY_CONFIG_FILE"},
 			Value:    getDefaultConfigFilePath(),
 			Required: false,
 			Usage:    "Config file. yaml format",
+		},
+		&cli.StringFlag{
+			Name:     "jwt-secret",
+			Aliases:  []string{"s"},
+			EnvVars:  []string{"PROXY_JWT_SECRET"},
+			Required: false,
+			Usage:    "JWT secret in base64 format",
+		},
+		&cli.StringFlag{
+			Name:     "proxy-url",
+			Aliases:  []string{"p"},
+			EnvVars:  []string{"PROXY_URL"},
+			Required: false,
+			Usage:    "JWT proxy url",
+		},
+		&cli.StringFlag{
+			Name:     "redis-uri",
+			Aliases:  []string{"r"},
+			EnvVars:  []string{"REDIS_URI"},
+			Required: false,
+			Usage:    "Redis URI",
 		},
 	}
 
