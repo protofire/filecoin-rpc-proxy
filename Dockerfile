@@ -17,4 +17,4 @@ COPY --from=builder /build/${APPNAME} ${APPDIR}/
 COPY --from=builder /etc/passwd /etc/passwd
 WORKDIR ${APPDIR}
 USER ${USER}
-ENTRYPOINT ["/app/proxy"]
+CMD ["/bin/sh","-c","/app/proxy"]
