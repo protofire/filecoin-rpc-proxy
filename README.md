@@ -1,5 +1,5 @@
 # This version is deprecated
-Actual version is supported by Glif team at [https://github.com/protofire/filecoin-rpc-proxy](https://github.com/protofire/filecoin-rpc-proxy)
+Actual version is supported by Glif team at [https://github.com/glifio/filecoin-rpc-proxy](https://github.com/glifio/filecoin-rpc-proxy)
 
 Overview
 -----------------------------
